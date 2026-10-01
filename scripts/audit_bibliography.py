@@ -13,7 +13,7 @@ CITATION_KEYS = ROOT / "literature" / "cited-keys.txt"
 PAPER_BIB = PAPER / "references.bib"
 BIB = PAPER_BIB if PAPER_BIB.exists() else BUNDLED_BIB
 CALIBRATION = ROOT / "literature-calibration.csv"
-TEX_FILES = (PAPER / "main.tex", PAPER / "supplementary_appendix.tex")
+TEX_FILES = (PAPER / "main.tex", PAPER / "supplement-content.tex")
 DOI = re.compile(r"^10\.\d{4,9}/\S+$", re.IGNORECASE)
 YEAR = re.compile(r"^(19|20)\d{2}$")
 

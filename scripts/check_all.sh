@@ -22,5 +22,6 @@ done
 python "$ROOT/scripts/verify_results.py"
 python "$ROOT/scripts/verify_equal_work.py"
 python "$ROOT/scripts/verify_process_crash.py"
+python "$ROOT/scripts/verify_environment_inventory.py"
 
 python "$ROOT/scripts/verify_tpds.py"

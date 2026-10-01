@@ -10,6 +10,8 @@ The in-process simulator holds five replica objects and delivers cells directly.
 
 The peer service exposes five loopback TCP endpoints in one event loop. Each owns an independent replica state. Repair exchanges peer inventories, missing cells, handles, floors, and complete floor vectors; no workload oracle participates. Before acknowledging a mutation, the service validates the replacement state, fsyncs a temporary snapshot, atomically replaces the saved snapshot, and fsyncs the parent directory. A failure before replacement preserves the prior state. A failure after replacement but before acknowledgement is an unacknowledged outcome even though the immutable update may be present; retry is idempotent. The event-loop campaign closes and reopens endpoints orderly.
 
+A query normally returns one state-coupled certificate with the complete serialized state. If repeating the same evidence bodies in both surfaces would exceed the 4~MiB frame bound, the transport replaces certificate cells with immutable `(left, right, epoch, source)` keys into that same returned snapshot; the independent checker resolves and verifies those keys. If the key-reference response still cannot fit, the service returns a framed atomic error rather than beginning a partial frame or silently closing the connection. A static boundary regression covers this serialization case; it is not reported as a performance experiment.
+
 A separate recovery campaign starts four independent Python service processes, distributes five evidence sources across them, and uses two process groups during the partition. Each of three 2,200-cell cases sends `SIGKILL` only after an acknowledged commit, restarts that process from its snapshot, heals through peer pulls, then repeats a post-convergence abrupt restart. This establishes recovery of acknowledged snapshots after process exit on one host. It does not inject a crash inside a write, torn-sector behavior, filesystem failure, power loss, independent-machine failure, or crash consensus.
 
 The equal-work campaign adds two reference architectures using the same evidence decisions, JSON/TCP framing, file-and-directory durable snapshot replacement, restart check, and state-coupled certificate:
@@ -38,7 +40,7 @@ The artifact uses Python's standard library and Bash. From this directory:
 ./scripts/reproduce_extended.sh
 ```
 
-`check_all.sh` runs 55 unit and boundary tests, including all 720 orders of the six-cell split history, strict parsing/common-floor regressions, globally compatible ambiguity regressions, public-extraction/predicate checks, atomic persistence failures, concurrent-ingest serialization, read-only acknowledgement, stale-temporary cleanup, and cross-process hash-seed determinism. It also runs the public-input and 68-reference audits (including per-paper supported points, project deltas, and named source anchors), checks representative certificates in normal and optimized Python modes, verifies every retained result surface, evaluates 276 public target pairs, and checks the 30 equal-work rows, independent-process recovery summaries, 60 materializer cases, and 2,550 exact topology placements.
+`check_all.sh` runs 57 unit and boundary tests, including all 720 orders of the six-cell split history, strict parsing/common-floor regressions, globally compatible ambiguity regressions, public-extraction/predicate checks, atomic persistence failures, concurrent-ingest serialization, read-only acknowledgement, stale-temporary cleanup, and cross-process hash-seed determinism. It also runs the public-input and 68-reference audits (including per-paper supported points, project deltas, and named source anchors), checks representative certificates in normal and optimized Python modes, verifies every retained result surface, evaluates 276 public target pairs, and checks the 30 equal-work rows, independent-process recovery summaries, 60 materializer cases, and 2,550 exact topology placements.
 
 `reproduce.sh` recreates and independently verifies the retained core simulation families, 207 certificate measurements, compaction, five scale cases, the six-row navigation calibration, and the public target benchmark. It is self-contained in an empty `results/` directory; its final verifier intentionally does not require extended-campaign files.
 
@@ -68,6 +70,7 @@ python scripts/render_socket_table.py
 python scripts/render_socket_table.py --numbers
 python scripts/render_evidence_tables.py public
 python scripts/render_evidence_tables.py equal
+python scripts/render_tpds_assets.py --output /path/to/paper/tables
 ```
 
 ## Indexed materialization and topology sensitivity
@@ -122,12 +125,9 @@ The public fixture check is intentionally narrower: it evaluates exact normalize
 The main article is a replicated-evidence study, not a trained identity classifier.
 The public fixture pairs are dependent and selected upstream; independent-pair
 confidence intervals are not reported. Their leave-group-out ranges are finite
-sensitivity summaries, not an unseen large holdout. For the materializer, three complete 512-handle timing executions are retained:
-the original paired run, an independent clean run in `results/reproduction.json`,
-and the final current run in `results/tpds/`. Their complete views are identical,
-while sparse-cut speedup varies from 2.32 to 3.03 and the two control families
-remain near one. `results/tpds/materializer_replications.csv` makes the three-way
-comparison explicit. Neither runtime nor speedup is a correctness gate.
+sensitivity summaries, not an unseen large holdout. For the materializer, two 512-handle executions retain all 600 per-call timing records: the clean run in `results/reproduction.json` and the final current run in `results/tpds/`. Both are independently reaggregated and preserve identical complete views; their sparse-cut medians are 2.32 and 2.72, while the two controls remain near one. An earlier 3.03 sparse-cut value survives only as an aggregate summary. Its per-call timings are unavailable, so it is retained for transparency but is not counted as a complete or independently reproducible execution. `results/tpds/materializer_replications.csv` and `materializer_provenance.json` record that distinction. Neither runtime nor speedup is a correctness gate.
+
+All cited historical timing runs predate environment capture. CPU model and core allocation, memory constraint, OS and Python version, container or virtualization limits, persistence medium, and filesystem are therefore listed as unknown in `results/timing_environment_inventory.csv`. The reproduction entry points invoke `scripts/capture_environment.py` so new executions record those fields automatically without retroactively attributing them to historical measurements.
 
 The main and supplemental numeric assets can be reproduced by
 `python scripts/render_tpds_assets.py --output /path/to/table-directory`.

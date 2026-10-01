@@ -24,11 +24,87 @@ HANDLE_LIMIT = 30_000
 RPC_TIMEOUT = 10.0
 
 
+def encode_json(value: Any) -> bytes:
+    """Return the canonical JSON bytes used by every frame."""
+    return json.dumps(
+        value, sort_keys=True, separators=(",", ":"), allow_nan=False
+    ).encode("utf-8")
+
+
 def pack(value: Any) -> bytes:
-    data = json.dumps(value, sort_keys=True, separators=(",", ":"), allow_nan=False).encode()
+    data = encode_json(value)
     if len(data) > FRAME_LIMIT:
         raise ValueError("frame exceeds bounded service limit")
     return struct.pack("!I", len(data)) + data
+
+
+def evidence_key(raw: dict[str, Any]) -> list[Any]:
+    """Reference one evidence cell already present in the coupled state."""
+    return [raw["left"], raw["right"], raw["epoch"], raw["source"]]
+
+
+def compact_certificate(certificate: dict[str, Any]) -> dict[str, Any]:
+    """Deduplicate evidence bodies against the state carried in the same reply.
+
+    The ordinary certificate remains the canonical artifact representation.  This
+    transport-only form replaces repeated evidence cells with immutable keys that
+    the independent checker resolves from the coupled state.
+    """
+    kind = certificate.get("kind")
+    if kind == "same":
+        support = []
+        for item in certificate["support"]:
+            support.append(
+                {
+                    "pair": item["pair"],
+                    "epoch": item["epoch"],
+                    "cell_keys": [evidence_key(cell) for cell in item["cells"]],
+                }
+            )
+        return {
+            "kind": "same",
+            "query": certificate["query"],
+            "path": certificate["path"],
+            "support": support,
+            "evidence_encoding": "state-cell-keys",
+        }
+    if kind == "different":
+        return {
+            "kind": "different",
+            "query": certificate["query"],
+            "separator_pair": certificate["separator_pair"],
+            "cell_key": evidence_key(certificate["cell"]),
+            "evidence_encoding": "state-cell-keys",
+        }
+    # Ambiguity plans contain source positions but no repeated reason strings.
+    return certificate
+
+
+def bounded_response(request: dict[str, Any], result: dict[str, Any]) -> bytes:
+    """Pack a successful response, compacting query evidence when necessary.
+
+    If even the state-key form does not fit, return a small explicit rejection.
+    The server never begins a frame that it cannot complete.
+    """
+    answer = {"ok": True, "result": result}
+    try:
+        return pack(answer)
+    except ValueError:
+        if (
+            request.get("op") == "query"
+            and isinstance(result, dict)
+            and isinstance(result.get("state"), dict)
+            and isinstance(result.get("certificate"), dict)
+        ):
+            compact = {
+                "state": result["state"],
+                "certificate": compact_certificate(result["certificate"]),
+            }
+            try:
+                return pack({"ok": True, "result": compact})
+            except ValueError:
+                pass
+        return pack({"ok": False, "error": "response exceeds bounded service limit"})
 
 
 async def receive(reader: asyncio.StreamReader) -> tuple[Any, int]:
@@ -213,13 +289,14 @@ class Service:
     async def _connection(self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> None:
         try:
             request, _ = await asyncio.wait_for(receive(reader), RPC_TIMEOUT)
-            answer = {"ok": True, "result": await self.dispatch(request)}
+            result = await self.dispatch(request)
+            payload = bounded_response(request, result)
         except (ValueError, KeyError, TypeError, OSError, asyncio.TimeoutError, asyncio.IncompleteReadError):
-            answer = {"ok": False, "error": "invalid, unavailable, or incompatible request"}
+            payload = pack({"ok": False, "error": "invalid, unavailable, or incompatible request"})
         try:
-            writer.write(pack(answer))
+            writer.write(payload)
             await asyncio.wait_for(writer.drain(), RPC_TIMEOUT)
-        except (ConnectionError, OSError, ValueError, asyncio.TimeoutError):
+        except (ConnectionError, OSError, asyncio.TimeoutError):
             pass
         finally:
             writer.close()

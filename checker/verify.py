@@ -244,6 +244,23 @@ def canonical_cell(raw: Mapping[str, object]) -> Tuple[object, ...]:
     return (left, right, epoch, source, vote, reason)
 
 
+
+
+def canonical_cell_key(raw: object) -> Tuple[object, ...]:
+    require(isinstance(raw, list) and len(raw) == 4, "certificate cell key must contain four fields")
+    left, right, epoch_raw, source = raw
+    require(isinstance(left, str) and isinstance(right, str), "certificate cell-key handles must be strings")
+    relation = pair(left, right)
+    require((left, right) == relation, "certificate cell-key handles are not canonical")
+    epoch = strict_int(epoch_raw, "certificate cell-key epoch")
+    require(epoch >= 0, "certificate cell-key epoch must be non-negative")
+    require(isinstance(source, str) and source, "certificate cell-key source must be a non-empty string")
+    return (left, right, epoch, source)
+
+
+def state_cell_key(raw: Mapping[str, object]) -> Tuple[object, ...]:
+    return (raw["left"], raw["right"], raw["epoch"], raw["source"])
+
 def query_of(normalized: Mapping[str, object], certificate: Mapping[str, object]) -> Tuple[str, str]:
     raw_query = certificate.get("query")
     require(isinstance(raw_query, list) and len(raw_query) == 2, "certificate query must contain two handles")
@@ -288,16 +305,29 @@ def verify_same(normalized: Mapping[str, object], certificate: Mapping[str, obje
         require(isinstance(raw_pair, list) and raw_pair == list(edge), f"same support pair mismatch for {edge!r}")
         require(strict_int(item.get("epoch"), "same support epoch") == epoch, f"same support epoch mismatch for {edge!r}")
         raw_cells = item.get("cells")
-        require(isinstance(raw_cells, list), "same support cells must be a list")
-        supplied = {canonical_cell(cell) for cell in raw_cells}
-        require(len(supplied) == len(raw_cells), "same support contains duplicate cells")
-        expected = {
-            canonical_cell(cell)
-            for cell in cells.values()
-            if str(cell["vote"]) == "same"
-        }
-        require(supplied == expected, f"same support cells do not match selected evidence for {edge!r}")
-        require(len(supplied) >= threshold, f"same support for {edge!r} does not meet the threshold")
+        raw_keys = item.get("cell_keys")
+        require(
+            (raw_cells is None) != (raw_keys is None),
+            "same support must use exactly one evidence representation",
+        )
+        expected_cells = [
+            cell for cell in cells.values() if str(cell["vote"]) == "same"
+        ]
+        if raw_cells is not None:
+            require(isinstance(raw_cells, list), "same support cells must be a list")
+            supplied = {canonical_cell(cell) for cell in raw_cells}
+            require(len(supplied) == len(raw_cells), "same support contains duplicate cells")
+            expected = {canonical_cell(cell) for cell in expected_cells}
+            require(supplied == expected, f"same support cells do not match selected evidence for {edge!r}")
+            supplied_count = len(supplied)
+        else:
+            require(isinstance(raw_keys, list), "same support cell_keys must be a list")
+            supplied_keys = {canonical_cell_key(cell_key) for cell_key in raw_keys}
+            require(len(supplied_keys) == len(raw_keys), "same support contains duplicate cell keys")
+            expected_keys = {state_cell_key(cell) for cell in expected_cells}
+            require(supplied_keys == expected_keys, f"same support cell keys do not match selected evidence for {edge!r}")
+            supplied_count = len(supplied_keys)
+        require(supplied_count >= threshold, f"same support for {edge!r} does not meet the threshold")
     require(component_of[query[0]] == component_of[query[1]], "same query endpoints are not in one component")
 
 
@@ -311,13 +341,23 @@ def verify_different(normalized: Mapping[str, object], certificate: Mapping[str,
     require(edge in relation_decisions, "different separator relation is absent from the state")
     vote, _, cells, sealed = relation_decisions[edge]
     require(sealed and vote == "different", "different separator is not a selected sealed DIFFERENT decision")
-    supplied = canonical_cell(certificate.get("cell"))
-    expected = {
-        canonical_cell(cell)
-        for cell in cells.values()
-        if str(cell["vote"]) == "different"
-    }
-    require(supplied in expected, "different certificate cell is not selected negative evidence")
+    raw_cell = certificate.get("cell")
+    raw_key = certificate.get("cell_key")
+    require(
+        (raw_cell is None) != (raw_key is None),
+        "different certificate must use exactly one evidence representation",
+    )
+    expected_cells = [
+        cell for cell in cells.values() if str(cell["vote"]) == "different"
+    ]
+    if raw_cell is not None:
+        supplied = canonical_cell(raw_cell)
+        expected = {canonical_cell(cell) for cell in expected_cells}
+        require(supplied in expected, "different certificate cell is not selected negative evidence")
+    else:
+        supplied_key = canonical_cell_key(raw_key)
+        expected_keys = {state_cell_key(cell) for cell in expected_cells}
+        require(supplied_key in expected_keys, "different certificate cell key is not selected negative evidence")
     require(component_of[query_left] != component_of[query_right], "different query endpoints are in one component")
     left_members = component_members(component_of, query_left)
     right_members = component_members(component_of, query_right)

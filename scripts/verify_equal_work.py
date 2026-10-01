@@ -5,6 +5,8 @@ from __future__ import annotations
 import csv
 import importlib.util
 import json
+import math
+import statistics
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -19,6 +21,87 @@ spec.loader.exec_module(checker)
 def require(condition: bool, message: str) -> None:
     if not condition:
         raise RuntimeError(message)
+
+
+def number(row: dict[str, str], field: str) -> float:
+    return float(row[field])
+
+
+def integer(row: dict[str, str], field: str) -> int:
+    return int(row[field])
+
+
+def independently_aggregate(rows: list[dict[str, str]]) -> dict[str, dict[str, object]]:
+    result: dict[str, dict[str, object]] = {}
+    numeric_fields = (
+        "wire_bytes",
+        "persistence_bytes_written",
+        "final_durable_bytes",
+        "elapsed_seconds",
+        "rpc_p95_ms",
+        "certificate_verification_ms",
+    )
+    for architecture in sorted({row["architecture"] for row in rows}):
+        selected = [row for row in rows if row["architecture"] == architecture]
+        item: dict[str, object] = {
+            "cases": len(selected),
+            "partition_write_availability_mean": statistics.mean(
+                number(row, "partition_write_availability") for row in selected
+            ),
+            "partition_query_availability_mean": statistics.mean(
+                number(row, "partition_query_availability") for row in selected
+            ),
+            "partition_availability_by_layout": {
+                layout: statistics.mean(
+                    number(row, "partition_query_availability")
+                    for row in selected
+                    if row["layout"] == layout
+                )
+                for layout in sorted({row["layout"] for row in selected})
+            },
+            "partition_ambiguous_total": sum(
+                integer(row, "partition_ambiguous") for row in selected
+            ),
+            "partition_same_total": sum(
+                integer(row, "partition_same") for row in selected
+            ),
+            "all_final_same": all(row["final_kind"] == "same" for row in selected),
+            "all_zero_false_merge": all(
+                integer(row, "final_false_merge_pairs") == 0 for row in selected
+            ),
+            "all_zero_false_split": all(
+                integer(row, "final_false_split_pairs") == 0 for row in selected
+            ),
+            "all_restart_recovered": all(
+                integer(row, "restart_recovered") == 1 for row in selected
+            ),
+        }
+        for field in numeric_fields:
+            values = [number(row, field) for row in selected]
+            item[field + "_median"] = statistics.median(values)
+            item[field + "_range"] = {
+                "min": min(values),
+                "median": statistics.median(values),
+                "max": max(values),
+            }
+        result[architecture] = item
+    return result
+
+
+def same_number(left: object, right: object) -> bool:
+    return math.isclose(float(left), float(right), rel_tol=1e-12, abs_tol=1e-12)
+
+
+def compare_aggregate(expected: object, observed: object, path: str = "summary") -> None:
+    if isinstance(expected, dict):
+        require(isinstance(observed, dict), f"{path} type changed")
+        require(set(expected) == set(observed), f"{path} fields changed")
+        for key in expected:
+            compare_aggregate(expected[key], observed[key], f"{path}.{key}")
+    elif isinstance(expected, (int, float)) and not isinstance(expected, bool):
+        require(same_number(expected, observed), f"{path} numeric value differs")
+    else:
+        require(expected == observed, f"{path} value differs")
 
 
 def main() -> int:
@@ -90,6 +173,13 @@ def main() -> int:
 
     summary = json.loads((RESULTS / "equal_work_summary.json").read_text(encoding="utf-8"))
     require(summary["cases"] == 30, "summary case count changed")
+    independent = independently_aggregate(rows)
+    compare_aggregate(independent, summary["architectures"], "equal_work_summary.architectures")
+    expected_medians = {
+        "central-recompute": 0.23978703499994936,
+        "coordinated-quorum": 1.1628892314999462,
+        "peer-evidence": 2.5533232980000093,
+    }
     for architecture, availability in expected_mean_availability.items():
         item = summary["architectures"][architecture]
         require(item["cases"] == 10, "summary architecture count changed")
@@ -99,8 +189,16 @@ def main() -> int:
         require(item["all_final_same"] is True, "summary final decision predicate failed")
         require(item["all_zero_false_merge"] is True and item["all_zero_false_split"] is True, "summary correctness predicate failed")
         require(item["all_restart_recovered"] is True, "summary restart predicate failed")
+        require(
+            same_number(item["elapsed_seconds_median"], expected_medians[architecture]),
+            f"{architecture} retained median changed",
+        )
 
-    print(f"PASS: 30 equal-work rows; {verified} state-coupled certificates; persistence, availability, and caps")
+    print(
+        "PASS: 30 equal-work rows independently aggregated; "
+        f"{verified} state-coupled certificates; retained medians "
+        "0.239787035/1.1628892315/2.553323298 s"
+    )
     return 0
 
 

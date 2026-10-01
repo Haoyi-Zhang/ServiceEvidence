@@ -3,8 +3,13 @@
 from __future__ import annotations
 
 import argparse
+import csv
 import json
+import statistics
 from pathlib import Path
+
+from equal_work_data import aggregate as aggregate_equal_work
+from equal_work_data import read_rows as read_equal_work_rows
 
 ROOT = Path(__file__).resolve().parents[1]
 RESULTS = ROOT / "results"
@@ -35,7 +40,7 @@ Closed-world endpoint & {control['predicted_same']} & {control['predicted_differ
 
 
 def equal_table() -> str:
-    data = json.loads((RESULTS / "equal_work_summary.json").read_text(encoding="utf-8"))["architectures"]
+    data = aggregate_equal_work(read_equal_work_rows(RESULTS / "equal_work.csv"))
     labels = [
         ("central-recompute", "Central"),
         ("coordinated-quorum", "Quorum"),

@@ -3,6 +3,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 export PYTHONPATH="$ROOT/src"
 export PYTHONDONTWRITEBYTECODE=1
+python "$ROOT/scripts/capture_environment.py" --output "$ROOT/results/runtime_environment/core-reproduction.json" --context core-reproduction --storage-path "$ROOT/results"
 python "$ROOT/scripts/audit_public_inputs.py"
 python "$ROOT/scripts/audit_bibliography.py"
 echo "[reproduce] archived-input calibration" >&2

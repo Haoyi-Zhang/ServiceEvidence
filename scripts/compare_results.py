@@ -35,9 +35,14 @@ def read(path: Path) -> object:
         return list(csv.DictReader(stream)) if path.suffix == '.csv' else json.load(stream)
 
 def compare(reference: Path, candidate: Path) -> dict:
-    files = sorted(p.relative_to(reference) for p in reference.rglob('*')
-                   if p.is_file() and p.suffix in {'.json', '.csv'}
-                   and p.name not in {'reproduction.json', 'reproduction.csv'})
+    files = sorted(
+        p.relative_to(reference)
+        for p in reference.rglob('*')
+        if p.is_file()
+        and p.suffix in {'.json', '.csv'}
+        and p.name not in {'reproduction.json', 'reproduction.csv'}
+        and 'runtime_environment' not in p.relative_to(reference).parts
+    )
     missing, different = [], []
     for rel in files:
         if not (candidate / rel).is_file():
