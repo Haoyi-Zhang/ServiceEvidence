@@ -11,7 +11,7 @@ permissions:
 jobs:
   bounded-science:
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    timeout-minutes: 25
     env:
       PYTHONPATH: src
       PYTHONUTF8: '1'
@@ -46,6 +46,15 @@ jobs:
           timeout 180s python -B experiments/exact_oracles.py 2>&1 | tee .scientific-results/exact.log
           timeout 180s python -B experiments/materializer_campaign.py 2>&1 | tee .scientific-results/materializer.log
           timeout 180s python -B experiments/topology_campaign.py 2>&1 | tee .scientific-results/topology.log
+          timeout 180s python -B experiments/socket_campaign.py --services 20 2>&1 | tee .scientific-results/socket-pilot.log
+          for seed in 1 2 3 4 5; do
+            timeout 180s python -B experiments/socket_campaign.py --services 100 --seed "$seed" 2>&1 | tee ".scientific-results/socket-$seed.log"
+          done
+          timeout 180s python -B experiments/socket_campaign.py --public 2>&1 | tee .scientific-results/socket-passive-fixture.log
+          timeout 360s python -B experiments/equal_work_campaign.py 2>&1 | tee .scientific-results/equal-work.log
+          timeout 180s python -B experiments/process_crash_campaign.py 2>&1 | tee .scientific-results/process-crash.log
+          timeout 60s python -B scripts/verify_equal_work.py 2>&1 | tee .scientific-results/equal-work-verification.log
+          timeout 60s python -B scripts/verify_process_crash.py 2>&1 | tee .scientific-results/process-crash-verification.log
           python -B - <<'PY'
           import csv
           from pathlib import Path
@@ -70,5 +79,6 @@ jobs:
         with:
           name: scientific-checks-${{ github.run_id }}
           path: .scientific-results/
+          include-hidden-files: true
           if-no-files-found: error
           retention-days: 14
