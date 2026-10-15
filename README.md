@@ -233,3 +233,14 @@ modules and replays both retained corrected pure and complete workflow cohorts
 on pushes, pull requests and manual dispatch. Its larger fresh-campaign job
 runs only on main-branch pushes or manual dispatch; the focused replay does not
 create a new timing cohort.
+
+## Manuscript schematics
+
+The epoch split, evidence flow, negative-safe view and merge-only boundary
+are drawn directly in Python as vector PDFs with embedded fonts. They express
+the stated model and algorithm, not measurements. With Python 3.9+ and
+Matplotlib, regenerate them from this directory:
+
+```sh
+python -B figures/draw_schematics.py --output figures
+```
