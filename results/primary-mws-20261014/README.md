@@ -98,5 +98,4 @@ https://www.ecva.net/papers/eccv_2018/papers_ECCV/papers/Steffen_Wolf_The_Mutex_
 and the complete 15-page extended author version, including Section 4 proofs
 and Appendix A: https://arxiv.org/abs/1904.12654v2 . This does not certify all
 references in the bibliography as full-text read. Legal notices and source
-input licenses remain unchanged. Codex assistance for this addition is
-disclosed in the manuscript.
+input licenses remain unchanged.
