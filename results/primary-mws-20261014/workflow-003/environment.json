@@ -1,6 +1,6 @@
 {
   "python": "3.12.14 (main, Aug 25 2026, 14:01:42) [MSC v.1944 64 bit (AMD64)]",
-  "python_executable": "D:\\CodexProjects\\2026-07-13\\new-chat-4\\completion_workspace\\library_review\\pdf-env\\Scripts\\python.exe",
+  "python_executable": "<PROJECTS_ROOT>\\2026-07-13\\new-chat-4\\completion_workspace\\library_review\\pdf-env\\Scripts\\python.exe",
   "platform": "Windows-11-10.0.28000-SP0",
   "sqlite": "3.53.1",
   "sqlite_role": "runtime inventory only; this service does not use SQLite",
