@@ -1,6 +1,6 @@
 {
   "python": "3.12.14 (main, Aug 25 2026, 14:01:42) [MSC v.1944 64 bit (AMD64)]",
-  "python_executable": "<PROJECTS_ROOT>\\2026-07-13\\new-chat-4\\completion_workspace\\library_review\\pdf-env\\Scripts\\python.exe",
+  "python_executable": "<PYTHON_ROOT>/Scripts/python.exe",
   "platform": "Windows-11-10.0.28000-SP0",
   "sqlite": "3.53.1",
   "sqlite_role": "runtime inventory only; this service does not use SQLite",
@@ -37,10 +37,10 @@
       "NumberOfLogicalProcessors": 20
     },
     "os": {
-      "Caption": "Microsoft Windows 11 \u4e13\u4e1a\u7248",
+      "Caption": "Microsoft Windows 11 专业版",
       "Version": "10.0.28000",
       "BuildNumber": "28000",
-      "OSArchitecture": "64 \u4f4d",
+      "OSArchitecture": "64 位",
       "TotalVisibleMemorySize": 33388720
     },
     "volume": {
