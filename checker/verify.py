@@ -87,7 +87,7 @@ def validate_state(state: Mapping[str, object]) -> Mapping[str, object]:
         source = raw.get("source")
         require(isinstance(source, str) and source in sources, f"cell {index} source is not registered")
         vote = raw.get("vote")
-        require(vote in {"same", "different", "unknown"}, f"cell {index} has an invalid vote")
+        require(isinstance(vote, str) and vote in {"same", "different", "unknown"}, f"cell {index} has an invalid vote")
         reason = raw.get("reason", "")
         require(isinstance(reason, str), f"cell {index} reason must be a string")
         key = (relation, epoch, source)
@@ -239,7 +239,7 @@ def canonical_cell(raw: Mapping[str, object]) -> Tuple[object, ...]:
     vote = raw.get("vote")
     reason = raw.get("reason", "")
     require(isinstance(source, str), "certificate cell source must be a string")
-    require(vote in {"same", "different", "unknown"}, "certificate cell vote is invalid")
+    require(isinstance(vote, str) and vote in {"same", "different", "unknown"}, "certificate cell vote is invalid")
     require(isinstance(reason, str), "certificate cell reason must be a string")
     return (left, right, epoch, source, vote, reason)
 

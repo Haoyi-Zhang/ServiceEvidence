@@ -66,18 +66,23 @@ def render_certificate_table(output: Path) -> None:
 def render_equal_ranges(output: Path, equal: dict[str, dict[str, object]]) -> None:
     lines = [
         r"\begin{table}[t]\centering",
-        r"\caption{Equal-work ranges across ten cases per architecture. Response percentages use the two measured cuts; byte columns are MiB.}",
-        r"\label{tab:equal-work-ranges}\scriptsize",
+        r"\caption{Equal-work ranges (ten cases/architecture). Responses: percentages at two measured cuts; bytes: MiB.}",
+        r"\label{tab:equal-work-ranges}\footnotesize",
+        r"\setlength{\tabcolsep}{3.5pt}",
         r"\begin{tabular}{lrrrr}\toprule",
         r"Architecture & Response & Wire & Persisted & Time (s)\\\midrule",
     ]
     labels = (
-        ("central-recompute", "Central", "40/60"),
-        ("coordinated-quorum", "Quorum", "60/60"),
-        ("peer-evidence", "Peer", "100/100"),
+        ("central-recompute", "Central"),
+        ("coordinated-quorum", "Quorum"),
+        ("peer-evidence", "Peer"),
     )
-    for key, label, availability in labels:
+    for key, label in labels:
         item = equal[key]
+        availability = "/".join(
+            f"{100 * item['partition_availability_by_layout'][layout]:.0f}"
+            for layout in ("authority-minority", "authority-majority")
+        )
         rendered: list[str] = []
         for field in ("wire_bytes", "persistence_bytes_written", "elapsed_seconds"):
             value = item[field + "_range"]
@@ -95,8 +100,9 @@ def render_materializer_provenance(output: Path) -> dict[str, object]:
     lookup = {(row["execution"], row["family"]): row for row in replications}
     lines = [
         r"\begin{table}[t]\centering",
-        r"\caption{Materializer timings at 512 handles. Values are median reference/indexed speedups. The summary-only run lacks per-call records and cannot be independently reaggregated.}",
-        r"\label{tab:materializer-provenance}\scriptsize",
+        r"\caption{512-handle median reference/indexed speedups; summary-only lacks raw calls for independent reaggregation.}",
+        r"\label{tab:materializer-provenance}\footnotesize",
+        r"\setlength{\tabcolsep}{3.5pt}",
         r"\begin{tabular}{lrrrr}\toprule",
         r"Execution & Sparse & Dense & Low conflict & Raw calls\\\midrule",
     ]

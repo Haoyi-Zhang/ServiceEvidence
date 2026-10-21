@@ -25,7 +25,7 @@ def public_table() -> str:
 \centering
 \caption{{Public target-equivalence results over {selected['pairs']} probe/control pairs.}}
 \label{{tab:public-target}}
-\scriptsize
+\footnotesize
 \setlength{{\tabcolsep}}{{3.5pt}}
 \begin{{tabular}}{{lrrrrr}}
 \toprule
