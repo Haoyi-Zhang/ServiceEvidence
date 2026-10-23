@@ -16,6 +16,8 @@ from typing import Dict, Iterable, List, Mapping, Optional, Sequence, Set, Tuple
 
 
 Relation = Tuple[str, str]
+MAX_AMBIGUITY_SOURCES = 5
+MAX_AMBIGUITY_CANDIDATES = 100_000
 
 
 def relation(a: str, b: str) -> Relation:
@@ -564,6 +566,8 @@ class Replica:
         # therefore merge the entire path without violating the frozen negative
         # set.  The search minimizes changed or supplied source slots, then edge
         # count, then a deterministic relation/component ordering.
+        if len(self.sources) > MAX_AMBIGUITY_SOURCES:
+            raise ValueError('ambiguity source limit exceeded; no exact plan returned')
         quotient: Dict[
             int,
             List[
@@ -769,15 +773,20 @@ class Replica:
         if best_objective is None:
             raise RuntimeError("ambiguity graph lacks a direct bounded fallback")
 
+        examined_candidates = 0
+
         def search(
             node: int,
             path: Tuple[int, ...],
             cost: int,
             steps: Tuple[Dict[str, object], ...],
         ) -> None:
-            nonlocal best_objective, best_path, best_steps
+            nonlocal best_objective, best_path, best_steps, examined_candidates
             assert best_objective is not None
             for item in quotient[node]:
+                examined_candidates += 1
+                if examined_candidates > MAX_AMBIGUITY_CANDIDATES:
+                    raise ValueError('ambiguity search budget exceeded; no exact plan returned')
                 neighbor, edge_cost = item[0], item[1]
                 if neighbor in path or not compatible(path, neighbor):
                     continue

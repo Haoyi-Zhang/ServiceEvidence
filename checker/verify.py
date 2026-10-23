@@ -19,6 +19,8 @@ from typing import Dict, List, Mapping, Sequence, Set, Tuple
 
 Pair = Tuple[str, str]
 Decision = Tuple[str, int, Mapping[str, Mapping[str, object]], bool]
+MAX_AMBIGUITY_SOURCES = 5
+MAX_AMBIGUITY_CANDIDATES = 100_000
 
 
 class VerificationError(ValueError):
@@ -398,6 +400,8 @@ def _minimal_ambiguity_prepared(
     expensive than |sources| need consideration.
     """
     sources, threshold = normalized["sources"], normalized["threshold"]
+    require(len(sources) <= MAX_AMBIGUITY_SOURCES,
+            'ambiguity source limit exceeded; exact plan not verified')
     relation_decisions, _, component_of, _, _, different = reconstructed
     left_component = component_of[query_left]
     right_component = component_of[query_right]
@@ -526,10 +530,14 @@ def _minimal_ambiguity_prepared(
     # the graph's canonical forward order while remaining implementation-
     # independent from the producer's recursive traversal.
     stack = [(left_component, (left_component,), 0, tuple())]
+    examined_candidates = 0
     while stack:
         node, path, cost, steps = stack.pop()
         extensions = []
         for item in graph[node]:
+            examined_candidates += 1
+            require(examined_candidates <= MAX_AMBIGUITY_CANDIDATES,
+                    'ambiguity search budget exceeded; exact plan not verified')
             neighbor, edge_cost = item[0], item[1]
             if neighbor in path or not compatible(path, neighbor):
                 continue

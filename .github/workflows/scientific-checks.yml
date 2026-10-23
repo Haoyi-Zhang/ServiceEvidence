@@ -26,6 +26,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          python -B -m unittest discover -s tests -p test_ambiguity_budget.py -v
           python -B -m unittest discover -s tests -p test_mutex_baseline.py -v
           python -B -m unittest discover -s tests -p test_mutex_merge_cost.py -v
           python -B -m unittest discover -s tests -p test_indexed_materializer.py -v
