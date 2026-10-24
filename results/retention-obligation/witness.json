@@ -1,0 +1,270 @@
+{
+  "provenance": "owned constructed two-epoch witness, not an independent real case",
+  "stale": {
+    "node_id": "stale",
+    "sources": [
+      "s0",
+      "s1",
+      "s2"
+    ],
+    "threshold": 2,
+    "handles": [
+      "a",
+      "b"
+    ],
+    "stable_floors": [],
+    "cells": [
+      {
+        "left": "a",
+        "right": "b",
+        "epoch": 0,
+        "source": "s0",
+        "vote": "same",
+        "reason": "owned retention witness"
+      },
+      {
+        "left": "a",
+        "right": "b",
+        "epoch": 0,
+        "source": "s1",
+        "vote": "same",
+        "reason": "owned retention witness"
+      },
+      {
+        "left": "a",
+        "right": "b",
+        "epoch": 0,
+        "source": "s2",
+        "vote": "unknown",
+        "reason": "owned retention witness"
+      }
+    ]
+  },
+  "compacted": {
+    "node_id": "owned",
+    "sources": [
+      "s0",
+      "s1",
+      "s2"
+    ],
+    "threshold": 2,
+    "handles": [
+      "a",
+      "b"
+    ],
+    "stable_floors": [
+      {
+        "left": "a",
+        "right": "b",
+        "epoch": 1
+      }
+    ],
+    "cells": [
+      {
+        "left": "a",
+        "right": "b",
+        "epoch": 1,
+        "source": "s0",
+        "vote": "different",
+        "reason": "owned retention witness"
+      },
+      {
+        "left": "a",
+        "right": "b",
+        "epoch": 1,
+        "source": "s1",
+        "vote": "unknown",
+        "reason": "owned retention witness"
+      },
+      {
+        "left": "a",
+        "right": "b",
+        "epoch": 1,
+        "source": "s2",
+        "vote": "unknown",
+        "reason": "owned retention witness"
+      }
+    ]
+  },
+  "plain_log_replay": {
+    "node_id": "plain-log",
+    "sources": [
+      "s0",
+      "s1",
+      "s2"
+    ],
+    "threshold": 2,
+    "handles": [
+      "a",
+      "b"
+    ],
+    "stable_floors": [],
+    "cells": [
+      {
+        "left": "a",
+        "right": "b",
+        "epoch": 0,
+        "source": "s0",
+        "vote": "same",
+        "reason": "owned retention witness"
+      },
+      {
+        "left": "a",
+        "right": "b",
+        "epoch": 0,
+        "source": "s1",
+        "vote": "same",
+        "reason": "owned retention witness"
+      },
+      {
+        "left": "a",
+        "right": "b",
+        "epoch": 0,
+        "source": "s2",
+        "vote": "unknown",
+        "reason": "owned retention witness"
+      },
+      {
+        "left": "a",
+        "right": "b",
+        "epoch": 1,
+        "source": "s0",
+        "vote": "different",
+        "reason": "owned retention witness"
+      },
+      {
+        "left": "a",
+        "right": "b",
+        "epoch": 1,
+        "source": "s1",
+        "vote": "unknown",
+        "reason": "owned retention witness"
+      },
+      {
+        "left": "a",
+        "right": "b",
+        "epoch": 1,
+        "source": "s2",
+        "vote": "unknown",
+        "reason": "owned retention witness"
+      }
+    ]
+  },
+  "floor_aware_replay": {
+    "node_id": "owned",
+    "sources": [
+      "s0",
+      "s1",
+      "s2"
+    ],
+    "threshold": 2,
+    "handles": [
+      "a",
+      "b"
+    ],
+    "stable_floors": [
+      {
+        "left": "a",
+        "right": "b",
+        "epoch": 1
+      }
+    ],
+    "cells": [
+      {
+        "left": "a",
+        "right": "b",
+        "epoch": 1,
+        "source": "s0",
+        "vote": "different",
+        "reason": "owned retention witness"
+      },
+      {
+        "left": "a",
+        "right": "b",
+        "epoch": 1,
+        "source": "s1",
+        "vote": "unknown",
+        "reason": "owned retention witness"
+      },
+      {
+        "left": "a",
+        "right": "b",
+        "epoch": 1,
+        "source": "s2",
+        "vote": "unknown",
+        "reason": "owned retention witness"
+      }
+    ]
+  },
+  "certificates": [
+    {
+      "kind": "different",
+      "query": [
+        "a",
+        "b"
+      ],
+      "separator_pair": [
+        "a",
+        "b"
+      ],
+      "cell": {
+        "left": "a",
+        "right": "b",
+        "epoch": 1,
+        "source": "s0",
+        "vote": "different",
+        "reason": "owned retention witness"
+      }
+    },
+    {
+      "kind": "different",
+      "query": [
+        "a",
+        "b"
+      ],
+      "separator_pair": [
+        "a",
+        "b"
+      ],
+      "cell": {
+        "left": "a",
+        "right": "b",
+        "epoch": 1,
+        "source": "s0",
+        "vote": "different",
+        "reason": "owned retention witness"
+      }
+    },
+    {
+      "kind": "different",
+      "query": [
+        "a",
+        "b"
+      ],
+      "separator_pair": [
+        "a",
+        "b"
+      ],
+      "cell": {
+        "left": "a",
+        "right": "b",
+        "epoch": 1,
+        "source": "s0",
+        "vote": "different",
+        "reason": "owned retention witness"
+      }
+    }
+  ],
+  "retained_cells": [
+    3,
+    6,
+    3
+  ],
+  "equal_partitions": true,
+  "equal_certificates": true,
+  "obligation": "retain at most |Sources| cells at acknowledged floor with p=0 after stale replay",
+  "plain_log_satisfies_retention": false,
+  "floor_aware_satisfies_retention": true,
+  "augmentation": "persist and merge floors by maximum; filter obsolete cells; retain sealed floor vectors",
+  "scope": "logical retention counterexample; no durability or performance measurement"
+}

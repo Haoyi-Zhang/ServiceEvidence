@@ -226,6 +226,55 @@ The path is explicit so this repository does not depend on a manuscript tree.
 
 ## Smaller-table comparator and executable plans
 
+The retention witness is a constructed two-epoch counterexample, not a real
+maintenance incident. Run `PYTHONPATH=src python -B experiments/retention_obligation.py
+--out results/retention-obligation/witness.json`. It uses corrected MWS in both
+arms and checks that stale replay preserves both partitions and certificates
+while a plain cell log grows from three to six cells and the floor-aware join
+stays at three. Its consumer is the manuscript's explicit retention obligation.
+
+The existing full workflow runner also accepts `--persistence durable`. On Linux
+it uses the unchanged file-fsync/replace/directory-fsync commit in every arm and
+adds three snapshot reloads and checked queries to each case. All other source
+batches, repairs, future epochs, acknowledgements and compaction steps are
+shared with the volatile runner. Example:
+
+```sh
+PYTHONPATH=src python -B experiments/workflow_mws.py --persistence durable --out results/durable-mws-new
+```
+
+This command refuses unsupported platforms or a failed native durability probe;
+it never substitutes memory-only commits. The Windows attempt retained under
+`results/retention-obligation/durable-attempt/` is an unavailable-run record,
+not a persistent-service measurement. The Linux same-work persistent comparison
+remains to be executed; do not interpret the runner or its portable binding test
+as that scientific result.
+
+The existing `.github/workflows/scientific-checks.yml` now wires this driver to
+the `durable-mws-workflow` job on Ubuntu 24.04/Python 3.12, on manual dispatch
+or a main-branch push. It preserves the focused and bounded-science jobs. The
+new job reserves a nonexisting `$RUNNER_TEMP/p024-durable-mws-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}`,
+runs the command below with a 240-second outer bound, and then independently
+checks all saved states, certificates, application frames, per-phase timings,
+commit/fsync accounting, source bindings and three orderly snapshot reloads
+per case. The 36 cases rotate indexed, corrected smaller-table MWS and scanning
+implementations over the same 12 generated inputs and update/repair/floor schedule.
+
+```sh
+PYTHONPATH=src python -B experiments/workflow_mws.py --persistence durable --out "$DURABLE_MWS_OUT"
+PYTHONPATH=src python -B scripts/verify_durable_workflow_mws.py --out "$DURABLE_MWS_OUT" --json-out "$DURABLE_MWS_OUT/verified-summary.json"
+```
+
+Verification prints one compact JSON summary to the job log. The always-run
+upload retains raw compressed frames and phase costs, final snapshots, explicit
+before/recovered restart states, environment and commit identity, source hashes,
+and verification logs as `p024-durable-mws-<run_id>-<run_attempt>` for 14 days.
+Failures retain their available raw trace and logs rather than becoming accepted
+rows. This wiring has been checked locally, but the Linux CI job has not yet
+been published or executed in this repair workspace. Its orderly reload check
+does not replace the separate abrupt-process campaign or establish power-loss
+durability. New measurements must be reviewed before entering manuscript tables.
+
 `results/primary-mws-20261014/README.md` documents the separate corrected-MWS
 cohort, the actual future-vector execution check and the same-information
 native volatile-loopback comparison. It preserves historical rows and labels,
