@@ -250,6 +250,11 @@ not a persistent-service measurement. The actual Linux same-work persistent
 comparison is retained separately in `results/durable-mws-linux/`; its raw
 records, not the portable binding test, support the durable paper table.
 
+In the Windows attempt's path-normalized `environment.json`, `<PYTHON_RUNTIME>`
+denotes the recorded Python installation root, not a literal executable path.
+The relative suffix, runtime inventory, failed probe and unavailable-measurement
+status are retained; this display representation is not a byte-exact capture.
+
 The existing `.github/workflows/scientific-checks.yml` now wires this driver to
 the `durable-mws-workflow` job on Ubuntu 24.04/Python 3.12, on manual dispatch
 or a main-branch push. It preserves the focused and bounded-science jobs. The
