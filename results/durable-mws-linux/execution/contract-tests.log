@@ -1,0 +1,8 @@
+test_changed_source_binding_is_rejected (test_durable_workflow_contract.DurableWorkflowContractTests.test_changed_source_binding_is_rejected) ... ok
+test_fresh_bounded_job_preserves_existing_checks (test_durable_workflow_contract.DurableWorkflowContractTests.test_fresh_bounded_job_preserves_existing_checks) ... ok
+test_volatile_output_is_not_durable_evidence (test_durable_workflow_contract.DurableWorkflowContractTests.test_volatile_output_is_not_durable_evidence) ... ok
+
+----------------------------------------------------------------------
+Ran 3 tests in 0.001s
+
+OK

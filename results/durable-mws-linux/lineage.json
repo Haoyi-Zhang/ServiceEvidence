@@ -1,0 +1,21 @@
+{
+  "description": "Actual retained Ubuntu durable loopback execution, not a Windows rerun",
+  "repository": "Haoyi-Zhang/ServiceEvidence",
+  "commit": "e9c030e1890b6bd1f3db41694ed131744f40a196",
+  "run_id": 40064473190,
+  "run_attempt": 1,
+  "job_id": 120784717732,
+  "run_url": "https://github.com/Haoyi-Zhang/ServiceEvidence/actions/runs/40064473190",
+  "job_url": "https://github.com/Haoyi-Zhang/ServiceEvidence/actions/runs/40064473190/job/120784717732",
+  "artifact_id": 12548876034,
+  "uploaded_zip_sha256": "7c440cf3c409df358e720ca179cf1aa40712c2d95a79d351f24fd52570e328c7",
+  "original_files": 157,
+  "original_uncompressed_bytes": 32101446,
+  "original_mapping": {
+    "p024-durable-mws-40064473190-1/": "./",
+    "p024-durable-mws-logs-40064473190-1/": "execution/"
+  },
+  "original_bytes_preserved": true,
+  "source_preimage": "source-preimage/: seven measured files, byte-identical to source-before.json and source-after.json; no archive code executed",
+  "evidence_boundary": "Three loopback endpoints in one event loop; orderly snapshot reloads; no power-loss, independent-process crash, multi-machine or production ranking claim"
+}

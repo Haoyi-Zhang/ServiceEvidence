@@ -1,0 +1,7 @@
+test_equal_mws_view_does_not_imply_equal_retention (test_retention_obligation.RetentionObligationTests.test_equal_mws_view_does_not_imply_equal_retention) ... ok
+test_persistent_arm_binds_mws_on_load_and_post_replace_failure (test_retention_obligation.RetentionObligationTests.test_persistent_arm_binds_mws_on_load_and_post_replace_failure) ... ok
+
+----------------------------------------------------------------------
+Ran 2 tests in 0.150s
+
+OK

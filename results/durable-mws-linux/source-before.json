@@ -1,0 +1,9 @@
+{
+  "experiments/workflow_mws.py": "61c2cbce5efc85f1c0b19b156703dbfc2e42bf09b8b006008032e2150d97cadb",
+  "experiments/materializer_campaign.py": "0704c8bc776278f5e2c25f990ab0af6534c31d6be4dc3cdcd65ce4f6ba775714",
+  "src/cie/model.py": "3464a52306357db15bbd259b76a345a3d06e911485dcd552f2bc60b062ba8668",
+  "src/cie/service.py": "45ca2bbb25f96bcfa891c254ae0b51bc25a59401be57329bf737c2dc9939aae3",
+  "src/cie/mutex_baseline.py": "b040148567e47d3706fd88382f3f9c739a680c21e2e1e1dda89c6e551bd87b97",
+  "checker/verify.py": "278fdec98b61c8064f895859c501379eb69699168cd7521e0933ef2d408334d2",
+  "scripts/verify_durable_workflow_mws.py": "310a058da9a0b28351bc0200c27ff878f9c6e6110d99a621ad943f89acad19a0"
+}

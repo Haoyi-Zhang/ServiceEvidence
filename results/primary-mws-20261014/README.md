@@ -3,7 +3,7 @@
 This separate cohort does not replace earlier measurements. It uses owned
 synthetic graph inputs, not external observations or production deployments.
 
-`pure-003/` is the complete 60-case, 900-call comparison used in the new table.
+`pure-003/` is the complete 60-case, 900-call comparison used in the supplemental Windows validation table.
 It stores 60 actual input states in `inputs/*.json.gz`, raw per-call timings,
 case/family summaries, the 729-graph consistency/ablation counts, the sealed
 triangle, the weighted-priority witness and 60 factorial rows for the 15
@@ -40,7 +40,9 @@ separate; they have no nested-frame log and are not final byte-replay evidence.
 actual Windows result. File-content fsync and snapshot replacement occur, but
 parent-directory fsync raises PermissionError (errno 13), preventing an
 acknowledgement. No fake directory-sync substitute is installed. The volatile
-campaign does not close this durable-platform gap. Power loss, mid-write exit,
+campaign does not test durable costs. The separate actual Ubuntu cohort in
+`../durable-mws-linux/` now supplies the same-work durable comparison in the
+main article; this historical Windows failure remains unchanged. Power loss, mid-write exit,
 independent machines and author-optimized MWS code are not validated.
 
 `execution-001/` contains the original ternary check: 729 graphs, 4,374 queries,

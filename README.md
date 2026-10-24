@@ -218,7 +218,7 @@ The public fixture pairs are dependent and selected upstream; independent-pair
 confidence intervals are not reported. Their leave-group-out ranges are finite
 sensitivity summaries, not an unseen large holdout. For the materializer, two 512-handle executions retain all 600 per-call timing records: the clean run in `results/reproduction.json` and the final current run in `results/tpds/`. Both are independently reaggregated and preserve identical complete views; their sparse-cut medians are 2.32 and 2.72, while the two controls remain near one. An earlier 3.03 sparse-cut value survives only as an aggregate summary. Its per-call timings are unavailable, so it is retained for transparency but is not counted as a complete or independently reproducible execution. `results/tpds/materializer_replications.csv` and `materializer_provenance.json` record that distinction. Neither runtime nor speedup is a correctness gate.
 
-All cited historical timing runs predate environment capture. CPU model and core allocation, memory constraint, OS and Python version, container or virtualization limits, persistence medium, and filesystem are therefore listed as unknown in `results/timing_environment_inventory.csv`. The reproduction entry points invoke `scripts/capture_environment.py` so new executions record those fields automatically without retroactively attributing them to historical measurements.
+The historical timing surfaces listed in `results/timing_environment_inventory.csv` predate environment capture. Their CPU model and core allocation, memory constraint, OS and Python version, container or virtualization limits, persistence medium, and filesystem remain unknown. The separate actual durable Linux cohort below has its own captured environment; it does not retroactively identify the earlier runs. Reproduction entry points invoke `scripts/capture_environment.py` for new executions.
 
 The main and supplemental numeric assets can be reproduced by
 `python scripts/render_tpds_assets.py --output /path/to/table-directory`.
@@ -246,9 +246,9 @@ PYTHONPATH=src python -B experiments/workflow_mws.py --persistence durable --out
 This command refuses unsupported platforms or a failed native durability probe;
 it never substitutes memory-only commits. The Windows attempt retained under
 `results/retention-obligation/durable-attempt/` is an unavailable-run record,
-not a persistent-service measurement. The Linux same-work persistent comparison
-remains to be executed; do not interpret the runner or its portable binding test
-as that scientific result.
+not a persistent-service measurement. The actual Linux same-work persistent
+comparison is retained separately in `results/durable-mws-linux/`; its raw
+records, not the portable binding test, support the durable paper table.
 
 The existing `.github/workflows/scientific-checks.yml` now wires this driver to
 the `durable-mws-workflow` job on Ubuntu 24.04/Python 3.12, on manual dispatch
@@ -270,10 +270,42 @@ upload retains raw compressed frames and phase costs, final snapshots, explicit
 before/recovered restart states, environment and commit identity, source hashes,
 and verification logs as `p024-durable-mws-<run_id>-<run_attempt>` for 14 days.
 Failures retain their available raw trace and logs rather than becoming accepted
-rows. This wiring has been checked locally, but the Linux CI job has not yet
-been published or executed in this repair workspace. Its orderly reload check
-does not replace the separate abrupt-process campaign or establish power-loss
-durability. New measurements must be reviewed before entering manuscript tables.
+rows. The retained actual run is
+[`40064473190`, job `120784717732`](https://github.com/Haoyi-Zhang/ServiceEvidence/actions/runs/40064473190/job/120784717732)
+at commit `e9c030e1890b6bd1f3db41694ed131744f40a196`, with artifact
+`12548876034`. All 157 uploaded files are retained byte-for-byte under
+`results/durable-mws-linux/` (execution logs are in `execution/`), alongside
+the seven measured source preimages and lineage. The reviewed verifier checks
+36 cases on 12 shared inputs, 540 state-coupled queries, 108 orderly reloads,
+3,024 RPCs and 230,409,192 application-wire bytes, with zero mismatches.
+There are 972 durable commits, 1,944 fsync calls and 137,966,625 cumulative
+snapshot-write bytes. Every case has 27 commits and 54 fsync calls.
+
+At 128 handles, the scanning/indexed/corrected-MWS complete-workflow medians
+over two seeds are 1704.67/1686.94/1792.73 ms (sparse cut),
+3375.37/3392.32/3426.95 ms (dense cut), and 696.07/622.08/657.99 ms
+(low conflict). Scanning is fastest on dense cut; these samples do not
+establish a uniform speed ranking or statistical separation. They include
+generation, endpoint start/close, updates, repair, queries, checker work,
+floor coordination and snapshot reloads, but exclude raw-log serialization.
+The host records Ubuntu 24.04.5, Python 3.12.15, four visible EPYC 9V45 CPUs
+and ext4; its mount includes `nobarrier,data=writeback`. A successful fsync
+API path and orderly reload are not power-loss validation or a deployment
+ranking, and do not replace the separate abrupt-process campaign.
+
+Passive verification and table regeneration (no experiment rerun) are:
+
+```sh
+PYTHONPATH=src python -B scripts/verify_durable_workflow_mws.py --out results/durable-mws-linux
+python -B scripts/render_durable_mws.py --output /path/to/paper/tables
+python -B scripts/render_durable_mws.py --output /path/to/paper/tables --check
+PYTHONPATH=src python -B -m unittest discover -s tests -p test_durable_mws_table.py -v
+```
+
+The renderer independently checks the raw cohort and measured source binding
+before generating the three-arm table and `durable-mws-summary.json`.
+`paper/compile.sh` consumes it; the artifact-only command needs no sibling paper.
+The earlier Windows pure/volatile table remains separate supplemental validation.
 
 `results/primary-mws-20261014/README.md` documents the separate corrected-MWS
 cohort, the actual future-vector execution check and the same-information
