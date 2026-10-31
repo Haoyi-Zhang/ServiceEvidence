@@ -47,9 +47,15 @@ A4. Fix one real-service equivalence relation across the retained evidence under
 
 A5. For convergence, every retained cell and every acknowledged floor is eventually delivered to every non-failed replica.
 
-A6. A floor advances only after every active replica acknowledges the complete sealed vector at that floor. The floor is persisted and merged by maximum. Local compaction validates every relation before mutation, retains the floor and every newer epoch, and succeeds only when the number of newer epochs is at most the configured pending allowance `p`; otherwise it refuses without mutation.
+A6. A floor advances only after every fixed member durably retains and acknowledges the complete sealed vector at that floor. The floor is persisted and merged by maximum. Local compaction validates every relation before mutation, retains the floor and every newer epoch, and succeeds only when the number of newer epochs is at most the configured pending allowance `p`; otherwise it refuses without mutation. If replacement succeeds but directory fsync fails, memory can contain a visible, unacknowledged state. The service must re-publish that state through the complete barrier before issuing a floor acknowledgement; repeated failure issues no acknowledgement. Vector completeness does not authenticate all-member consent: members and the coordinator remain trusted.
 
 The model does not cover Byzantine content, source collusion, a changing source registry across retained epochs, unbounded offline intervals with no acknowledgement, legal ownership, operator attribution, or completeness for arbitrary Web identity signals.
+
+A loaded snapshot also begins with durability pending for floor acknowledgement:
+the previous process may have stopped after replacement but before directory
+synchronization. The first floor ack re-publishes through the complete barrier;
+subsequent acks remain read-only until another indeterminate publication. Visible
+reload alone is not a durable sealed-vector acknowledgement.
 
 ## 4. Theorem ladder
 

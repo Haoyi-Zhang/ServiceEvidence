@@ -230,6 +230,7 @@ class Service:
         self.snapshot = snapshot
         self.stats = stats
         self.replica = Replica(node_id, sources, threshold, handles)
+        self._durability_pending = False
         self.server = None
         self.port = None
         if snapshot.exists():
@@ -237,6 +238,10 @@ class Service:
             if (saved.node_id, saved.sources, saved.threshold) != (node_id, self.replica.sources, threshold):
                 raise ValueError("persistent configuration mismatch")
             self.replica = saved
+            # A process may have stopped after replace but before a successful
+            # parent-directory sync. Re-establish the barrier before its first
+            # floor acknowledgement; visible reload alone cannot certify it.
+            self._durability_pending = True
         # A pre-rename temporary file can survive an abrupt exit.  It was never
         # acknowledged and therefore is not a committed snapshot.
         snapshot.with_suffix(".pending").unlink(missing_ok=True)
@@ -266,7 +271,9 @@ class Service:
             # retry is required, but this process does not continue from a
             # state older than the file it can already read.
             self.replica = proposed
+            self._durability_pending = True
             fsync_directory(self.snapshot.parent)
+            self._durability_pending = False
             if self.stats is not None:
                 self.stats.commits += 1
                 self.stats.snapshot_bytes += len(raw.encode("utf-8"))
@@ -378,6 +385,11 @@ class Service:
                 if set(vector) != set(self.replica.sources):
                     raise ValueError("cannot acknowledge an absent sealed vector")
                 vectors.extend(vector[s].to_dict() for s in self.replica.sources)
+            # A replaced but unsynchronized snapshot is visible, not yet a
+            # durable basis for another member's retirement. Retry the entire
+            # barrier before acknowledging; ordinary durable acks are read-only.
+            if self._durability_pending:
+                self._commit(self.replica)
             return {"member": self.replica.node_id, "floors": request["floors"], "vectors": vectors}
         if op == "compact":
             floors = parse_floors(request.get("floors"))

@@ -1,5 +1,16 @@
 # Convergent Identity Evidence
 
+Floor acknowledgements require a durable sealed vector, not merely visible
+memory. After a replacement succeeds but parent-directory fsync fails, the
+service marks durability pending and re-publishes the exact current snapshot
+through both fsync boundaries before issuing a floor acknowledgement. A failed
+retry returns no acknowledgement; ordinary durable acknowledgements remain
+read-only. A loaded snapshot re-establishes the barrier before its first floor
+acknowledgement, covering a predecessor interrupted after replace. The injected
+regressions in `tests/test_service_durability.py` cover
+this ordering, not power loss. Complete floor-vector content does not authenticate
+all-member consent: the local members/coordinator remain trusted.
+
 This artifact implements source-indexed evidence reconciliation, not an Internet identity classifier. Immutable evidence cells join by set union; acknowledged per-relation floors join by maximum and suppress obsolete history. Reads select the greatest sealed source vector, apply a negative veto and positive threshold, and derive a deterministic negative-safe partition. Each query returns its serialized state together with a `same`, `different`, or `ambiguous` certificate.
 
 Within one verification call, the independent checker reuses its own reconstructed decisions and partition. The public `minimal_ambiguity` helper still builds its own view; no context survives across calls and no producer view is trusted. This removes duplicate reconstruction, not the exact compatible-path search.

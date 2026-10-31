@@ -3,6 +3,7 @@ from __future__ import annotations
 import copy
 import json
 import subprocess
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -31,7 +32,7 @@ class ModelTests(unittest.TestCase):
             certificate_path = Path(temp_directory) / "certificate.json"
             state_path.write_text(json.dumps(state), encoding="utf-8")
             certificate_path.write_text(json.dumps(certificate), encoding="utf-8")
-            command = ["python"]
+            command = [sys.executable, "-B"]
             if optimized:
                 command.append("-O")
             command.extend([str(self.checker), str(state_path), str(certificate_path)])

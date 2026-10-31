@@ -102,6 +102,44 @@ class ServiceDurabilityTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(stats.commits, commits)
         self.assertEqual(self.snapshot.read_text(encoding="utf-8"), before)
 
+    async def test_floor_ack_retries_indeterminate_durability_before_retirement(self):
+        stats = WireStats()
+        service = self.service(stats=stats)
+        vector = (self.cell(source="v0"), self.cell(source="v1", vote=Vote.UNKNOWN))
+        request = {"op": "ack", "floors": [["a", "b", 0]]}
+        with patch("cie.service.fsync_directory", side_effect=OSError("directory fsync failed")):
+            with self.assertRaises(OSError):
+                await self.ingest(service, *vector)
+            # Seeing the vector in memory is not a durable acknowledgement.
+            with self.assertRaises(OSError):
+                await service.dispatch(request)
+        ack = await service.dispatch(request)
+        self.assertEqual(stats.commits, 1)
+        self.assertEqual(len(ack["vectors"]), 2)
+        restarted = self.service()
+        self.assertEqual(restarted.replica.export_state(), service.replica.export_state())
+        before = stats.commits
+        await service.dispatch(request)
+        self.assertEqual(stats.commits, before)  # Ordinary durable ack stays read-only.
+
+    async def test_reopened_visible_snapshot_needs_floor_ack_barrier(self):
+        service = self.service()
+        with patch("cie.service.fsync_directory", side_effect=OSError("directory fsync failed")):
+            with self.assertRaises(OSError):
+                await self.ingest(service, self.cell(source="v0"),
+                                  self.cell(source="v1", vote=Vote.UNKNOWN))
+        stats = WireStats()
+        restarted = self.service(stats=stats)
+        request = {"op": "ack", "floors": [["a", "b", 0]]}
+        with patch("cie.service.fsync_directory", side_effect=OSError("still failing")):
+            with self.assertRaises(OSError):
+                await restarted.dispatch(request)
+        self.assertEqual(stats.commits, 0)
+        await restarted.dispatch(request)
+        self.assertEqual(stats.commits, 1)
+        await restarted.dispatch(request)
+        self.assertEqual(stats.commits, 1)
+
 
     async def test_rpc_does_not_hang_when_peer_close_never_completes(self):
         reader = asyncio.StreamReader()
