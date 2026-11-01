@@ -220,6 +220,44 @@ def parse_floors(raw: Any) -> dict:
     return result
 
 
+def typed_json_equal(left: Any, right: Any) -> bool:
+    """Compare acknowledgement JSON without Boolean/integer/float aliases."""
+    if type(left) is not type(right):
+        return False
+    if isinstance(left, dict):
+        return left.keys() == right.keys() and all(
+            typed_json_equal(left[key], right[key]) for key in left
+        )
+    if isinstance(left, list):
+        return len(left) == len(right) and all(
+            typed_json_equal(a, b) for a, b in zip(left, right)
+        )
+    return left == right
+
+
+def validate_acknowledgement(raw: Any) -> None:
+    """Require the exact acknowledgement schema before comparing its content."""
+    if type(raw) is not dict or set(raw) != {"member", "floors", "vectors"}:
+        raise ValueError("invalid acknowledgement fields")
+    if type(raw["member"]) is not str or not raw["member"]:
+        raise ValueError("invalid acknowledgement member")
+    parse_floors(raw["floors"])
+    vectors = raw["vectors"]
+    if type(vectors) is not list or len(vectors) > CELL_LIMIT:
+        raise ValueError("acknowledgement vectors must be a bounded list")
+    keys = set()
+    for vector in vectors:
+        if type(vector) is not dict or set(vector) != {
+            "left", "right", "epoch", "source", "vote", "reason"
+        }:
+            raise ValueError("invalid acknowledgement cell fields")
+        cell = EvidenceCell.from_dict(vector)
+        key = cell_key(cell)
+        if key in keys:
+            raise ValueError("duplicate acknowledgement cell key")
+        keys.add(key)
+
+
 class Service:
     def __init__(self, node_id: str, sources: list[str], threshold: int,
                  handles: list[str], members: list[str], snapshot: Path,
@@ -252,6 +290,17 @@ class Service:
         if len(replica) > CELL_LIMIT or len(replica.handles) > HANDLE_LIMIT:
             raise ValueError("service state cap reached")
         pack(replica.export_state())
+
+    def _floor_vectors(self, floors: dict) -> list[dict]:
+        """Build validation data only; issuing an ack still needs its barrier."""
+        grouped = self.replica.relation_epochs()
+        vectors = []
+        for pair, epoch in sorted(floors.items()):
+            vector = grouped.get(pair, {}).get(epoch, {})
+            if set(vector) != set(self.replica.sources):
+                raise ValueError("cannot acknowledge an absent sealed vector")
+            vectors.extend(vector[source].to_dict() for source in self.replica.sources)
+        return vectors
 
     def _commit(self, proposed: Replica) -> None:
         self._admit(proposed)
@@ -378,13 +427,7 @@ class Service:
             return {"requested_cells": len(missing), "cells": len(proposed)}
         if op == "ack":
             floors = parse_floors(request.get("floors"))
-            grouped = self.replica.relation_epochs()
-            vectors = []
-            for pair, epoch in sorted(floors.items()):
-                vector = grouped.get(pair, {}).get(epoch, {})
-                if set(vector) != set(self.replica.sources):
-                    raise ValueError("cannot acknowledge an absent sealed vector")
-                vectors.extend(vector[s].to_dict() for s in self.replica.sources)
+            vectors = self._floor_vectors(floors)
             # A replaced but unsynchronized snapshot is visible, not yet a
             # durable basis for another member's retirement. Retry the entire
             # barrier before acknowledging; ordinary durable acks are read-only.
@@ -394,21 +437,25 @@ class Service:
         if op == "compact":
             floors = parse_floors(request.get("floors"))
             acks = request.get("acks")
-            if not isinstance(acks, list) or len(acks) != len(self.members):
+            if type(acks) is not list or len(acks) != len(self.members):
                 raise ValueError("all fixed members must acknowledge")
-            if any(not isinstance(a, dict) for a in acks):
-                raise ValueError("invalid acknowledgement")
-            if sorted(a.get("member", "") for a in acks) != list(self.members):
-                raise ValueError("missing or duplicate member acknowledgement")
-            local = await self.dispatch({"op": "ack", "floors": request["floors"]})
             for ack in acks:
-                if ack.get("floors") != local["floors"] or ack.get("vectors") != local["vectors"]:
+                validate_acknowledgement(ack)
+            if sorted(ack["member"] for ack in acks) != list(self.members):
+                raise ValueError("missing or duplicate member acknowledgement")
+            vectors = self._floor_vectors(floors)
+            for ack in acks:
+                if (not typed_json_equal(ack["floors"], request["floors"])
+                        or not typed_json_equal(ack["vectors"], vectors)):
                     raise ValueError("acknowledged vectors disagree")
             pending = request.get("pending", 1)
             if type(pending) is not int or pending < 0:
                 raise ValueError("invalid pending allowance")
             proposed = Replica.import_state(self.replica.export_state())
             removed = proposed.compact(floors, pending)
+            # Reject malformed/disagreeing acks and unsafe compaction before
+            # even a pending local acknowledgement can enter _commit.
+            await self.dispatch({"op": "ack", "floors": request["floors"]})
             self._commit(proposed)
             return {"removed": removed, "cells": len(proposed)}
         raise ValueError("unknown operation")

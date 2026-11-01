@@ -1,11 +1,12 @@
 import asyncio
+import copy
 import json
 from pathlib import Path
 import tempfile
 import unittest
 from unittest.mock import patch
 
-from cie.model import EvidenceCell, Vote
+from cie.model import EvidenceCell, Replica, Vote
 from cie.service import Service, WireStats, pack, rpc
 
 
@@ -177,6 +178,140 @@ class ServiceDurabilityTests(unittest.IsolatedAsyncioTestCase):
         restarted = self.service()
         self.assertFalse(pending.exists())
         self.assertEqual(restarted.replica.export_state(), service.replica.export_state())
+
+
+class AcknowledgementSchemaTests(unittest.IsolatedAsyncioTestCase):
+    """Memory-only protocol controls; no constructor, files, sockets or fsync."""
+
+    async def fixture(self, pending=False):
+        service = Service.__new__(Service)
+        service.members = ("n0", "n1")
+        service.replica = Replica("n0", ["v0", "v1"], 1, ["a", "b"])
+        service._durability_pending = False
+        for epoch in (0, 1):
+            for source in service.replica.sources:
+                service.replica.add(EvidenceCell(
+                    "a", "b", epoch, source, Vote.SAME, "owned schema control"
+                ))
+        floors = [["a", "b", 1]]
+        with patch.object(service, "_commit", side_effect=AssertionError("unexpected commit")) as commit:
+            ack = await service.dispatch({"op": "ack", "floors": floors})
+            commit.assert_not_called()
+        remote = copy.deepcopy(ack)
+        remote["member"] = "n1"
+        service._durability_pending = pending
+        return service, {"op": "compact", "floors": floors, "acks": [ack, remote], "pending": 0}
+
+    async def assert_rejected_before_commit(self, change):
+        for pending in (False, True):
+            with self.subTest(durability_pending=pending):
+                service, request = await self.fixture(pending)
+                change(request)
+                before = service.replica.export_state()
+                original_request = copy.deepcopy(request)
+                with patch.object(service, "_commit", side_effect=AssertionError("unexpected commit")) as commit:
+                    with self.assertRaises(ValueError):
+                        await service.dispatch(request)
+                    commit.assert_not_called()
+                self.assertEqual(service.replica.export_state(), before)
+                self.assertIs(service._durability_pending, pending)
+                self.assertEqual(request, original_request)
+
+    async def test_float_and_boolean_epochs_refuse_before_any_commit(self):
+        for value in (1.0, True):
+            for field in ("floor", "cell"):
+                with self.subTest(value=value, field=field):
+                    def change(request):
+                        ack = request["acks"][1]
+                        if field == "floor":
+                            ack["floors"][0][2] = value
+                        else:
+                            ack["vectors"][0]["epoch"] = value
+                    await self.assert_rejected_before_commit(change)
+
+    async def test_missing_and_extra_ack_or_cell_fields_refuse(self):
+        for field in ("member", "floors", "vectors"):
+            with self.subTest(missing_ack_field=field):
+                await self.assert_rejected_before_commit(lambda r: r["acks"][1].pop(field))
+        for field in ("left", "right", "epoch", "source", "vote", "reason"):
+            with self.subTest(missing_cell_field=field):
+                await self.assert_rejected_before_commit(lambda r: r["acks"][1]["vectors"][0].pop(field))
+        await self.assert_rejected_before_commit(
+            lambda r: r["acks"][1].update(stable_floors=[["a", "b", 0]])
+        )
+        await self.assert_rejected_before_commit(
+            lambda r: r["acks"][1]["vectors"][0].update(selected_epoch=0)
+        )
+        await self.assert_rejected_before_commit(
+            lambda r: r["acks"][1]["floors"][0].append(0)
+        )
+
+    async def test_malformed_nested_types_refuse(self):
+        for field, value in (("member", 1), ("floors", {}), ("vectors", {}), ("vectors", None)):
+            with self.subTest(field=field, value=value):
+                await self.assert_rejected_before_commit(lambda r: r["acks"][1].update({field: value}))
+        for field, value in (("source", True), ("vote", True), ("reason", 0), ("left", None)):
+            with self.subTest(cell_field=field, value=value):
+                await self.assert_rejected_before_commit(
+                    lambda r: r["acks"][1]["vectors"][0].update({field: value})
+                )
+
+    async def test_incomplete_conflicting_and_wrong_member_acks_refuse(self):
+        changes = (
+            lambda r: r["acks"][1]["vectors"].pop(),
+            lambda r: r["acks"][1]["vectors"].append(copy.deepcopy(r["acks"][1]["vectors"][0])),
+            lambda r: r["acks"][1]["vectors"][0].update(vote="different"),
+            lambda r: r["acks"][1]["vectors"][0].update(reason="contradictory reason"),
+            lambda r: r["acks"][1]["floors"][0].__setitem__(2, 0),
+            lambda r: r["acks"][1].update(member="n0"),
+            lambda r: r["acks"][1].update(member="foreign"),
+        )
+        for index, change in enumerate(changes):
+            with self.subTest(change=index):
+                await self.assert_rejected_before_commit(change)
+
+    async def test_legal_ack_compacts_with_pending_barrier_preserved(self):
+        for pending in (False, True):
+            with self.subTest(durability_pending=pending):
+                service, request = await self.fixture(pending)
+                # JSON object-key and member order are not semantic differences.
+                request["acks"].reverse()
+                for ack in request["acks"]:
+                    ack["vectors"] = [dict(reversed(list(cell.items()))) for cell in ack["vectors"]]
+                request["acks"] = [dict(reversed(list(ack.items()))) for ack in request["acks"]]
+                original_request = copy.deepcopy(request)
+                published = []
+
+                def memory_commit(proposed):
+                    published.append(proposed.export_state())
+                    service.replica = proposed
+                    service._durability_pending = False
+
+                with patch.object(service, "_commit", side_effect=memory_commit) as commit:
+                    result = await service.dispatch(request)
+                    self.assertEqual(commit.call_count, 2 if pending else 1)
+                self.assertEqual(result, {"removed": 2, "cells": 2})
+                self.assertEqual(service.replica.stable_floors, {("a", "b"): 1})
+                self.assertTrue(all(cell.epoch == 1 for cell in service.replica.cells))
+                if pending:
+                    self.assertEqual(len(published[0]["cells"]), 4)
+                    self.assertEqual(published[0]["stable_floors"], [])
+                self.assertEqual(request, original_request)
+
+    async def test_pending_barrier_failure_does_not_publish_compacted_state(self):
+        service, request = await self.fixture(pending=True)
+        before = service.replica.export_state()
+        with patch.object(service, "_commit", side_effect=OSError("owned barrier failure")) as commit:
+            with self.assertRaises(OSError):
+                await service.dispatch(request)
+            commit.assert_called_once_with(service.replica)
+        self.assertEqual(service.replica.export_state(), before)
+        self.assertTrue(service._durability_pending)
+
+    async def test_invalid_pending_allowance_refuses_before_barrier(self):
+        for value in (True, 0.0, -1, "0"):
+            with self.subTest(pending=value):
+                await self.assert_rejected_before_commit(lambda r: r.update(pending=value))
 
 
 if __name__ == "__main__":

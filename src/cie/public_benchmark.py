@@ -134,9 +134,10 @@ def conservative_vote(
 ) -> tuple[Vote, str]:
     """Return a supported SAME/DIFFERENT vote or abstain.
 
-    SAME requires both a successful endpoint overlap and a matching successful
-    HTTP signature. DIFFERENT requires disjoint successful endpoints plus two
-    independent HTTP conflicts. The target labels are not inspected.
+    SAME requires successful endpoint overlap, matching 2xx HTTP signatures,
+    and no recorded failure on either observation. DIFFERENT requires disjoint
+    successful endpoints plus two independent HTTP conflicts. The target labels
+    are not inspected.
     """
     if left.observation_id == right.observation_id:
         raise ValueError("a comparison requires distinct observations")
@@ -155,6 +156,10 @@ def conservative_vote(
     matching_title = bool(left.title and right.title and left.title == right.title)
     matching_http = bool(
         both_http
+        and 200 <= left.status <= 299
+        and 200 <= right.status <= 299
+        and not left.failure
+        and not right.failure
         and left.status == right.status
         and (
             matching_title
