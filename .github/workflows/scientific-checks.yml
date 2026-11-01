@@ -31,6 +31,8 @@ jobs:
           python -B -m unittest discover -s tests -p test_mutex_merge_cost.py -v
           python -B -m unittest discover -s tests -p test_indexed_materializer.py -v
           python -B -m unittest discover -s tests -p test_mutex_output_contract.py -v
+          python -B -m unittest discover -s tests -p test_http_authorities.py -v
+          python -O -B -m unittest discover -s tests -p test_http_authorities.py -v
           python -B scripts/verify_mutex.py --out results/primary-mws-20261014/pure-003
           python -B scripts/verify_workflow_mws.py --root results/primary-mws-20261014
       - name: Verify retained native process cuts without repeating the campaign

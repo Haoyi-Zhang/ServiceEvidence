@@ -12,14 +12,15 @@ from .model import EvidenceCell, Vote, relation
 
 def authority_handle(url: str) -> str:
     parsed = urlsplit(url)
-    if parsed.scheme not in ("http", "https") or not parsed.hostname or parsed.username or parsed.password:
+    if (parsed.scheme not in ("http", "https") or not parsed.hostname
+            or parsed.username is not None or parsed.password is not None):
         raise ValueError("expected an HTTP authority without credentials")
     host = parsed.hostname.lower()
     if ":" in host:
         host = f"[{host}]"
     port = parsed.port
     default = 80 if parsed.scheme == "http" else 443
-    return f"{parsed.scheme}://{host}" + (f":{port}" if port and port != default else "")
+    return f"{parsed.scheme}://{host}" + (f":{port}" if port is not None and port != default else "")
 
 
 def archived_candidates(path: Path):

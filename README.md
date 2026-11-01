@@ -46,6 +46,11 @@ For sorted timings `x[0], ..., x[n-1]`, the scale certificate p95 is `x[max(0, f
 
 ## Public evidence and label boundary
 
+Archived HTTP authority candidates retain explicit nondefault ports, including
+port zero; only an explicit scheme-default port is omitted. All userinfo is
+rejected, including an empty username. These are candidate-normalization rules,
+not additional identity votes or evidence of service equivalence.
+
 `external_inputs/public_http_calibration.csv` contains six factual navigation rows from three released *Web Performance Pitfalls* sample HAR files. Its conservative adapter emits only UNKNOWN evidence. This input calibrates redirects, authorities, and endpoint changes and exercises the service input path; it has no identity labels.
 
 `external_inputs/ooni_fixture_selection.csv` records 16 inspected public OONI Web Connectivity fixture candidates, 12 retained unique measurements, and four exclusions with explicit reasons. All upstream fixture and archived-input URLs are recorded as public repository paths in `external_inputs/NOTICE.md`, with access dates in `external_resources.csv`; reproduction uses the retained factual extraction and performs no live fetch. `external_inputs/ooni_dual_vantage_targets.csv` is the minimized side-specific factual extraction; each retained measurement contributes one probe observation and one control observation. `external_inputs/ooni_field_mapping.csv` identifies the source paths and records where fields are absent. Missing probe titles are not synthesized from match flags, DNS or HTTP records are not converted into unreported TCP successes, and negative/zero status values remain missing to the predicate. The 24 observations span 10 countries and 10 probe ASNs and yield 276 pairs over 11 normalized input targets: 16 exact-target matches and 260 cross-target pairs.
