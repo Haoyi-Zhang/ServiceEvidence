@@ -31,6 +31,15 @@ def require(condition: bool, message: str) -> None:
     if not condition:
         raise VerificationError(message)
 
+def typed_json_equal(left, right):
+    """Equality of JSON values, without Python's Boolean/numeric aliases."""
+    if type(left) is not type(right):return False
+    if isinstance(left,dict):
+        return left.keys()==right.keys() and all(typed_json_equal(left[k],right[k]) for k in left)
+    if isinstance(left,list):
+        return len(left)==len(right) and all(typed_json_equal(a,b) for a,b in zip(left,right))
+    return left==right
+
 
 def pair(left: str, right: str) -> Pair:
     require(isinstance(left, str) and isinstance(right, str), "pair endpoints must be strings")
@@ -526,34 +535,35 @@ def _minimal_ambiguity_prepared(
     require(direct_candidates, "ambiguity graph lacks a direct bounded fallback")
     best_objective, best_path, best_steps = min(direct_candidates, key=lambda item: item[0])
 
-    # Stack entries carry complete simple paths.  Reversed insertion preserves
-    # the graph's canonical forward order while remaining implementation-
-    # independent from the producer's recursive traversal.
-    stack = [(left_component, (left_component,), 0, tuple())]
+    # Iterator-bearing frames suspend the parent until its child returns.
+    # This preserves the recursive producer's incumbent-dependent pruning and
+    # candidate budget, without importing or recursively calling the producer.
+    stack = [(left_component, (left_component,), 0, tuple(), iter(graph[left_component]))]
     examined_candidates = 0
     while stack:
-        node, path, cost, steps = stack.pop()
-        extensions = []
-        for item in graph[node]:
-            examined_candidates += 1
-            require(examined_candidates <= MAX_AMBIGUITY_CANDIDATES,
-                    'ambiguity search budget exceeded; exact plan not verified')
-            neighbor, edge_cost = item[0], item[1]
-            if neighbor in path or not compatible(path, neighbor):
-                continue
-            new_cost = cost + edge_cost
-            if neighbor != right_component and new_cost >= best_objective[0]:
-                continue
-            step = step_of(node, neighbor, item)
-            new_path = path + (neighbor,)
-            new_steps = steps + (step,)
-            if neighbor == right_component:
-                candidate = objective(new_cost, new_path, new_steps)
-                if candidate < best_objective:
-                    best_objective, best_path, best_steps = candidate, new_path, new_steps
-            else:
-                extensions.append((neighbor, new_path, new_cost, new_steps))
-        stack.extend(reversed(extensions))
+        node, path, cost, steps, iterator = stack[-1]
+        try:
+            item=next(iterator)
+        except StopIteration:
+            stack.pop();continue
+        examined_candidates += 1
+        require(examined_candidates <= MAX_AMBIGUITY_CANDIDATES,
+                'ambiguity search budget exceeded; exact plan not verified')
+        neighbor, edge_cost = item[0], item[1]
+        if neighbor in path or not compatible(path, neighbor):
+            continue
+        new_cost = cost + edge_cost
+        if neighbor != right_component and new_cost >= best_objective[0]:
+            continue
+        step = step_of(node, neighbor, item)
+        new_path = path + (neighbor,)
+        new_steps = steps + (step,)
+        if neighbor == right_component:
+            candidate = objective(new_cost, new_path, new_steps)
+            if candidate < best_objective:
+                best_objective, best_path, best_steps = candidate, new_path, new_steps
+        else:
+            stack.append((neighbor, new_path, new_cost, new_steps, iter(graph[neighbor])))
 
     return best_objective[:2], list(best_steps), list(best_path), separators, component_of
 
@@ -578,7 +588,7 @@ def verify_ambiguous(normalized: Mapping[str, object], certificate: Mapping[str,
     require(optimum == (supplied_gap, supplied_edges), "ambiguity optimum does not match the certificate")
     supplied_path = certificate.get("component_path")
     require(isinstance(supplied_path, list), "ambiguity component_path must be a list")
-    require(supplied_path == expected_path, "ambiguity component path is not the canonical global optimum")
+    require(typed_json_equal(supplied_path, expected_path), "ambiguity component path is not the canonical global optimum")
     require(
         all(
             (min(left, right), max(left, right)) not in separators
@@ -589,7 +599,7 @@ def verify_ambiguous(normalized: Mapping[str, object], certificate: Mapping[str,
     )
     supplied_steps = certificate.get("steps")
     require(isinstance(supplied_steps, list), "ambiguity steps must be a list")
-    require(supplied_steps == expected_steps, "ambiguity steps do not match the independently reconstructed optimum")
+    require(typed_json_equal(supplied_steps, expected_steps), "ambiguity steps do not match the independently reconstructed optimum")
 
 
 def verify(state: Mapping[str, object], certificate: Mapping[str, object]) -> None:

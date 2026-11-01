@@ -6,7 +6,9 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 from pathlib import Path
+import subprocess
 import sys
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -24,9 +26,21 @@ def retained():
     for name, digest in binding.items():
         require(hashlib.sha256((DATA / 'source-preimage' / name).read_bytes()).hexdigest()
                 == digest, 'measured source preimage differs')
-    result = verify(DATA)
+    # The retained cohort was measured before later durability/checker repairs.
+    # Use its byte-checked verifier and dependencies in a fresh interpreter;
+    # never substitute current sources into the old measurement identities.
+    measured=DATA/'source-preimage'
+    env=dict(os.environ,PYTHONPATH=str(measured/'src'),PYTHONDONTWRITEBYTECODE='1')
+    completed=subprocess.run([sys.executable,'-B',str(measured/'scripts/verify_durable_workflow_mws.py'),
+        '--out',str(DATA)],cwd=measured,env=env,capture_output=True,text=True,timeout=90)
+    require(completed.returncode==0,'retained measured-source verification failed: '+completed.stderr[-1000:])
+    result=json.loads(completed.stdout)
     require(result == json.loads((DATA / 'verified-summary.json').read_text(encoding='utf-8')),
             'saved Linux verification summary differs from retained raw evidence')
+    result=dict(result,status='verified_retained_measured_cohort',
+        current_source_campaign_claimed=False,
+        measured_source_differences=[name for name,digest in binding.items()
+            if hashlib.sha256((ROOT/name).read_bytes()).hexdigest()!=digest])
     return result
 
 

@@ -1,5 +1,13 @@
 # Convergent Identity Evidence
 
+Retained durable timing tables are reconstructed with their hash-checked
+measured-source bundle in an isolated data-only process. They predate the
+floor-acknowledgement barrier repair below; no historical timing is rebound to
+the current service. `python -B scripts/render_durable_mws.py --output
+../paper/tables --check` reports current/measured source differences and checks
+the unchanged table values. Current checker regressions additionally enforce
+lazy depth-first budget agreement and exact nested JSON types.
+
 Floor acknowledgements require a durable sealed vector, not merely visible
 memory. After a replacement succeeds but parent-directory fsync fails, the
 service marks durability pending and re-publishes the exact current snapshot
