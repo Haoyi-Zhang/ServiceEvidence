@@ -33,6 +33,15 @@ jobs:
           python -B -m unittest discover -s tests -p test_mutex_output_contract.py -v
           python -B scripts/verify_mutex.py --out results/primary-mws-20261014/pure-003
           python -B scripts/verify_workflow_mws.py --root results/primary-mws-20261014
+      - name: Verify retained native process cuts without repeating the campaign
+        shell: bash
+        run: |
+          set -euo pipefail
+          export CIE_PROCESS_CUT_RECORDS="$RUNNER_TEMP/service-process-cut-records"
+          python -B scripts/unpack_process_cutpoints.py --archive results/process-cutpoints-evidence.zip --out "$CIE_PROCESS_CUT_RECORDS" --sha256 3f16b3ad626888137c97418a341e1eb73356664a581530c2240f104531a52fbe
+          python -B scripts/verify_persistence_cutpoints.py --out "$CIE_PROCESS_CUT_RECORDS"
+          python -B -m unittest discover -s regressions -p test_process_cutpoints.py -v
+          python -B -O -m unittest discover -s regressions -p test_process_cutpoints.py -v
   durable-mws-workflow:
     if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/main')
     runs-on: ubuntu-24.04

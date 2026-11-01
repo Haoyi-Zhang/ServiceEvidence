@@ -352,3 +352,17 @@ python -B figures/draw_schematics.py --output figures
 ## Portable path notation
 
 Published execution records use `<PYTHON_ROOT>`, `<NODE_ROOT>` and `<RUNTIME_ROOT>` for local tool installations, `<DEPENDENCIES_ROOT>` for local dependencies, and `<PROJECTS_ROOT>`, `<ARTIFACT_ROOT>`, `<SOURCE_ROOT>` and `<WORK_ROOT>` for the workspace, artifact checkout, source checkout and temporary work directory of the recorded run. These are path aliases, not literal directories or claims that historical temporary files are included in this bundle. Substitute the corresponding local roots when replaying a command. Recorded tool versions, source/input identities, measurements, outcomes and failures are unchanged. Current file inventories bind the portable published bytes; any `recorded_` identity denotes pre-normalization bytes.
+
+## Native process-cut recovery (separate correctness cohort)
+
+Experiments and passive consumers are documented in
+[PROCESS-CUTPOINTS.md](experiments/PROCESS-CUTPOINTS.md). The retained 59 cases
+include 54 externally supervised SIGKILL exits at real persistence boundaries,
+six partial-temp observations and five actual API refusals. Exact state/ack
+recovery passed on one WSL2/native-ext4 host. These are not power-loss,
+device-durability, WAN or independent-machine measurements, nor timing
+comparisons. Old campaigns and their limits/results remain unchanged.
+
+The standard lossless ZIP is the compact publication surface. Unpack into an
+owned temporary directory, verify all original bytes, then run the passive
+consumers. All uncompressed originals remain privately preserved.
