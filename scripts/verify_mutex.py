@@ -10,6 +10,16 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT/'results'/'mutex'
+# Match the declared campaign design without importing/running its producer.
+FAMILIES = ('sparse_cut', 'dense_cut', 'low_conflict')
+SIZES = ('64', '128', '256', '512')
+SEEDS = ('1', '2', '3', '4', '5')
+REPETITIONS = ('0', '1', '2', '3', '4')
+IMPLEMENTATIONS = ('scanning', 'indexed', 'mws_edge_ids')
+CASE_KEYS = set(itertools.product(FAMILIES, SIZES, SEEDS))
+SUMMARY_KEYS = set(itertools.product(FAMILIES, SIZES))
+RAW_KEYS = {(*case, rep, arm) for case in CASE_KEYS
+            for rep in REPETITIONS for arm in IMPLEMENTATIONS}
 
 
 def read(name):
@@ -24,6 +34,16 @@ def require(condition, message):
 
 def near(a,b):
     return math.isclose(float(a),float(b),rel_tol=1e-12,abs_tol=1e-12)
+
+
+def indexed_rows(records, fields, expected, label):
+    lookup = {}
+    for row in records:
+        key = tuple(row[field] for field in fields)
+        require(key not in lookup, f'{label}: duplicate identity {key}')
+        lookup[key] = row
+    require(set(lookup) == expected, f'{label}: incomplete or unexpected identity population')
+    return lookup
 
 
 def main():
@@ -42,7 +62,10 @@ def main():
     require(0 < checks['elapsed_seconds'] < 180,'campaign time cap')
     raw,cases,summary = read('stress_raw.csv'),read('stress_cases.csv'),read('stress_summary.csv')
     require((len(raw),len(cases),len(summary)) == (900,60,12),'row counts')
-    implementations = ('scanning','indexed','mws_edge_ids')
+    indexed_rows(raw, ('family','handles','seed','repetition','implementation'), RAW_KEYS, 'stress raw')
+    indexed_rows(cases, ('family','handles','seed'), CASE_KEYS, 'stress cases')
+    indexed_rows(summary, ('family','handles'), SUMMARY_KEYS, 'stress summary')
+    implementations = IMPLEMENTATIONS
     keys = set()
     for row in raw:
         key = (row['family'],row['handles'],row['seed'],row['repetition'],row['implementation'])
@@ -65,6 +88,7 @@ def main():
         require(near(float(row['mws_edge_ids_median_ms'])/float(row['indexed_median_ms']),row['mws_over_indexed']),
                 'MWS ratio')
     for row in summary:
+        require(row['seeds'] == '5' and row['repetitions'] == '5', 'summary population counts')
         selected = [r for r in cases if all(r[k] == row[k] for k in ('family','handles'))]
         require(len(selected) == 5,'summary seeds')
         for key in ('scanning_median_ms','indexed_median_ms','mws_edge_ids_median_ms',
