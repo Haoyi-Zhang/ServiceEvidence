@@ -7,6 +7,7 @@ bailis2014coordination
 bailis2014hat
 balakrishnan2004layered
 bansal2004correlation
+baquero2017pureop
 benjelloun2009swoosh
 beverly2016yarrp
 bhattacharya2007collective
@@ -44,6 +45,7 @@ izhikevich2021lzr
 jacobson2009namedcontent
 kleppmann2017json
 kohler2013games
+kolman2009forbidden
 konda2016magellan
 koop2020redirect
 koponen2007dona

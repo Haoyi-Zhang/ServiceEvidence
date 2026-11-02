@@ -105,6 +105,60 @@ def close(left: object, right: object) -> bool:
     return math.isclose(float(left), float(right), rel_tol=1e-12, abs_tol=1e-12)
 
 
+def uncomment_tex(text: str) -> str:
+    """Ignore TeX comments, preserving escaped percentage signs."""
+    lines = []
+    for line in text.splitlines():
+        for index, character in enumerate(line):
+            if character != "%":
+                continue
+            previous = index - 1
+            while previous >= 0 and line[previous] == "\\":
+                previous -= 1
+            if (index - 1 - previous) % 2 == 0:
+                line = line[:index]
+                break
+        lines.append(line)
+    return "\n".join(lines)
+
+
+def validate_timing_consumers(paper: Path) -> None:
+    """Check live timing uses in the two supplied literal-input wrappers.
+
+    This is a bounded source contract, not a TeX interpreter. A moved discussion
+    may live in either document, but comments, detached supplement content and
+    local macro redefinitions must not make stale prose pass the gate.
+    """
+    main = uncomment_tex((paper / "main.tex").read_text(encoding="utf-8"))
+    wrapper = uncomment_tex((paper / "supplement.tex").read_text(encoding="utf-8"))
+    supplement = uncomment_tex(
+        (paper / "supplement-content.tex").read_text(encoding="utf-8")
+    )
+    if not re.search(r"\\input\s*\{\s*supplement-content(?:\.tex)?\s*\}", wrapper):
+        supplement = ""
+    documents = {
+        "main.tex": (main, main),
+        "supplement.tex": (wrapper + "\n" + supplement, wrapper),
+    }
+    for _, macro, _ in ARCH.values():
+        token = rf"\\{re.escape(macro)}(?![A-Za-z])"
+        uses = []
+        for name, (body, preamble) in documents.items():
+            redefinition = (
+                rf"\\(?:newcommand|renewcommand|providecommand)\*?\s*"
+                rf"(?:\{{\s*{token}\s*\}}|{token})"
+                rf"|\\(?:def|gdef|edef|xdef)\s*{token}"
+            )
+            require(re.search(redefinition, body) is None,
+                    f"{name} redefines generated timing macro {macro}")
+            if re.search(token, body):
+                require(re.search(
+                    r"\\input\s*\{\s*tables/measured-values(?:\.tex)?\s*\}", preamble
+                ) is not None, f"{name} uses {macro} without generated measured-values input")
+                uses.append(name)
+        require(uses, f"no live main/supplement timing use of {macro}")
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--paper-dir", type=Path, required=True)
@@ -189,10 +243,7 @@ def main() -> int:
     main_tex = (paper / "main.tex").read_text(encoding="utf-8")
     supplement = (paper / "supplement-content.tex").read_text(encoding="utf-8")
     authors = (paper / "authors.tex").read_text(encoding="utf-8")
-    require(
-        "\\EqualPeerTime{}, \\EqualQuorumTime{}, \\EqualCentralTime{}" in main_tex,
-        "main text must use generated equal-work macros",
-    )
+    validate_timing_consumers(paper)
     require(
         "\\input{tables/equal-ranges.tex}" in supplement,
         "supplement does not use the generated equal-work range table",
