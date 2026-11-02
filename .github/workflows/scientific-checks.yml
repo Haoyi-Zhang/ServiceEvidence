@@ -46,6 +46,8 @@ jobs:
           python -B scripts/verify_persistence_cutpoints.py --out "$CIE_PROCESS_CUT_RECORDS"
           python -B -m unittest discover -s regressions -p test_process_cutpoints.py -v
           python -B -O -m unittest discover -s regressions -p test_process_cutpoints.py -v
+          python -B -m unittest discover -s regressions -p test_receiving_contracts.py -v
+          python -O -B -m unittest discover -s regressions -p test_receiving_contracts.py -v
   durable-mws-workflow:
     if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/main')
     runs-on: ubuntu-24.04

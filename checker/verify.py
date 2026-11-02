@@ -61,6 +61,7 @@ def load(path: Path) -> Mapping[str, object]:
 
 
 def validate_state(state: Mapping[str, object]) -> Mapping[str, object]:
+    require(isinstance(state, Mapping), "state must be an object")
     node_id = state.get("node_id")
     require(isinstance(node_id, str), "state node_id must be a string")
 
@@ -603,6 +604,7 @@ def verify_ambiguous(normalized: Mapping[str, object], certificate: Mapping[str,
 
 
 def verify(state: Mapping[str, object], certificate: Mapping[str, object]) -> None:
+    require(isinstance(certificate, Mapping), "certificate must be an object")
     normalized = validate_state(state)
     kind = certificate.get("kind")
     require(isinstance(kind, str), "certificate kind must be a string")

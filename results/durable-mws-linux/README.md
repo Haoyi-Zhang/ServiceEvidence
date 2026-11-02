@@ -28,18 +28,20 @@ clocks; `execution/environment.json` holds the richer host/filesystem inventory.
 
 `source-before.json` and `source-after.json` are the original measured hashes
 of seven files. `source-preimage/` contains those exact source bytes, checked
-against both manifests and the current corresponding implementation before
-import. These are scientific source preimages, not a second executable release.
+against both manifests before passive replay in a separate interpreter. Current
+files may differ and those differences are reported, not substituted into the
+recorded identities. These are scientific source preimages, not a second executable release.
 Do not alter the manifests to make changed code appear to be the measured code.
-The passive verifier binds to the current corresponding files and refuses a
-mismatch. The paper renderer also checks these retained preimages.
+The fresh-cohort verifier requires matching current files and refuses this
+historical/current mismatch. The retained-cohort command below and the paper
+renderer instead check and use the exact retained preimages without rerunning.
 
 ## Recheck without rerunning
 
 From the artifact root:
 
 ```sh
-PYTHONPATH=src python -B scripts/verify_durable_workflow_mws.py --out results/durable-mws-linux
+python -B scripts/verify_retained_durable_mws.py
 python -B scripts/render_durable_mws.py --output /path/to/paper/tables
 python -B scripts/render_durable_mws.py --output /path/to/paper/tables --check
 ```

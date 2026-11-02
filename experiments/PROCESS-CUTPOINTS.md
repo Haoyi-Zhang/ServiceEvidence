@@ -18,7 +18,10 @@ cells, and retained every refusal. Six operation acknowledgements were received
 by the parent before termination and survived reload; 34 fresh loaded floor acks
 returned their complete vectors only after the existing file+directory barrier.
 Unacknowledged post-replace updates can be present after reload: they are not
-retroactively called acknowledged. The source implementation needed no change.
+retroactively called acknowledged. The campaign used its captured source without
+an experiment-specific service replacement. Its exact service preimage is now
+included and hash-checked; later typed compaction-ack validation and floor-vector
+helper extraction are current-code changes, not freshly measured process cuts.
 
 These are direct API-return receipts carried to an external supervisor over a
 local pipe, not TCP client acknowledgement measurements. The wrappers execute

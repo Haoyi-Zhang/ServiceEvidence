@@ -325,7 +325,7 @@ ranking, and do not replace the separate abrupt-process campaign.
 Passive verification and table regeneration (no experiment rerun) are:
 
 ```sh
-PYTHONPATH=src python -B scripts/verify_durable_workflow_mws.py --out results/durable-mws-linux
+python -B scripts/verify_retained_durable_mws.py
 python -B scripts/render_durable_mws.py --output /path/to/paper/tables
 python -B scripts/render_durable_mws.py --output /path/to/paper/tables --check
 PYTHONPATH=src python -B -m unittest discover -s tests -p test_durable_mws_table.py -v
@@ -375,6 +375,12 @@ six partial-temp observations and five actual API refusals. Exact state/ack
 recovery passed on one WSL2/native-ext4 host. These are not power-loss,
 device-durability, WAN or independent-machine measurements, nor timing
 comparisons. Old campaigns and their limits/results remain unchanged.
+
+This cohort binds the exact captured service source, preserved under
+`results/process-cutpoints-source-preimage/`. Its passive verifier checks every
+recorded source identity and reports differences from current code. The later
+service adds typed compaction-ack admission and extracts the floor-vector helper;
+it is not presented as a fresh process-cut measurement of those later changes.
 
 The standard lossless ZIP is the compact publication surface. Unpack into an
 owned temporary directory, verify all original bytes, then run the passive
