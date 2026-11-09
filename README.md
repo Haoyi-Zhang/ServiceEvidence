@@ -353,13 +353,14 @@ create a new timing cohort.
 
 ## Manuscript schematics
 
-The epoch split, evidence flow, negative-safe view and merge-only boundary
-are drawn directly in Python as vector PDFs with embedded fonts. They express
-the stated model and algorithm, not measurements. With Python 3.9+ and
-Matplotlib, regenerate them from this directory:
+The evidence and recovery diagrams express the stated protocol. The four
+numerical plots read the retained materializer, correctness, sealing and
+compaction records. Figure text uses the paper's Nimbus Roman No9 L faces.
+The renderer locates them through `kpsewhich` or `FIGURE_TEX_FONT_DIR`;
+it does not invoke a TeX renderer. Generate the vector PDFs with Matplotlib:
 
 ```sh
-python -B figures/draw_schematics.py --output figures
+python -B figures/publication_figures.py
 ```
 
 ## Portable path notation
