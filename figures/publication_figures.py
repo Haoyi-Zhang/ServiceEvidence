@@ -59,12 +59,13 @@ def speed(out,preview):
         ax.set(xscale='log',xlim=(57,579),xticks=xs,xticklabels=xs,ylim=(lo,hi),yticks=ticks)
         ax.set_yticklabels([f'{t:g}' for t in ticks])
         ax.axhline(1,color=MUTED,ls=':',lw=.5,zorder=2)
-        ax.set_title(title,loc='left',pad=4,fontsize=9.3)
+        ax.set_title(title,loc='center',pad=4,fontsize=9.3)
         ax.minorticks_off()
         ax.tick_params(axis='both',labelsize=9,length=2.1)
         grid(ax)
     a.set_ylabel('Scanning / indexed time',fontsize=8.8)
-    f.text(.58,.05,'Handles',ha='center',fontsize=9)
+    group_center=(a.get_position().x0+b.get_position().x1)/2
+    f.text(group_center,.05,'Handles',ha='center',fontsize=9)
     f.legend(handles=[Line2D([],[],color=c,marker=m,ls=ls,ms=ms,
                            mfc=c if filled else 'white',mew=.66,lw=.74,label=label)
                       for (_,label),(c,m,ls,ms,filled) in zip(family,looks)],
