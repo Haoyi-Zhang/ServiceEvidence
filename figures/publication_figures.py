@@ -83,7 +83,7 @@ def sparsity(out,preview):
         a.plot(xs,[100*statistics.mean(float(r[k]) for r in groups[x]) for x in xs],
                color=c,ls=ls,marker=m if i==0 else 'D',ms=6.1 if i==0 else 2.4,mew=.68,lw=.75,
                mfc='white' if i==0 else c,label=label,zorder=3+i)
-    a.set(xticks=xs,ylim=(-2.1,32),xlabel='True candidate edges made sparse (%)',ylabel='Pairwise error (%)')
+    a.set(xticks=xs,ylim=(-2.1,32),xlabel='True edges with sparse evidence (%)',ylabel='Pairwise error (%)')
     a.legend(ncol=2,loc='lower left',bbox_to_anchor=(0,1.02),fontsize=8.7)
     grid(a);save(f,out,'sparsity-native',preview)
 
@@ -104,7 +104,7 @@ def sealing(out,preview):
                    transform=a.get_yaxis_transform(),va='center',ha='left',
                    color=INK,fontsize=8)
     a.set(xlim=(-4,101),ylim=(-.43,1.43),xticks=(0,25,50,75,100),
-          yticks=(1,0),yticklabels=['Random order','Positive first'],xlabel='False-merge trials (%)')
+          yticks=(1,0),yticklabels=['Random order','Positive first'],xlabel='Trials with a transient false merge (%)')
     a.tick_params(axis='y',length=0)
     a.legend(handles=[Patch(facecolor=AMBER,edgecolor=INK,hatch='//',label='Unsealed'),
                       Line2D([],[],marker='o',mfc='white',mec=TEAL,ms=4.3,mew=.85,
@@ -146,7 +146,7 @@ def partition_response(out,preview):
     for y,v in zip([1,0],vals):
         a.hlines(y,*sorted([100*float(x) for x in v[:2]]),color=RULE,linewidth=.8,zorder=1)
     a.set(xlim=(0,83),ylim=(-.42,1.43),xticks=(0,20,40,60,80),yticks=(1,0),
-          yticklabels=('All 51 partitions','15 two-block cuts'),xlabel='Sites able to respond (%)')
+          yticklabels=('All 51 partitions','15 two-block cuts'),xlabel='Mean responding-site share (%)')
     a.tick_params(axis='y',length=0)
     a.legend(ncol=2,loc='lower left',bbox_to_anchor=(0,1.03),fontsize=8.5)
     grid(a,'x');save(fig,out,'partition-response',preview)
@@ -180,13 +180,13 @@ def workflow_pairs(out,preview):
             x=[100*(observed[family,s,arm]/observed[family,s,'scanning']-1) for s in (1,2)]
             assert all(-20<v<10 for v in x)
             a.hlines(yy,*sorted(x),color=col,linewidth=.8,linestyle=ls)
-            a.plot(x,[yy,yy],linestyle='none',marker=marker,ms=3.4,mew=.55,
+            a.plot(x,[yy,yy],linestyle='none',marker=marker,ms=3.3,mew=.67,
                    mfc='white',color=col,label=title if j==0 else None)
     a.set(xlim=(-20,10),ylim=(-.43,2.43),xticks=(-20,-10,0,10),yticks=(2,1,0),
-          yticklabels=('Sparse cut','Dense cut','Low conflict'),xlabel='Paired workflow time vs. scanning (%)')
+          yticklabels=('Sparse cut','Dense cut','Low conflict'),xlabel='Workflow time change vs. scanning (%)')
     a.tick_params(axis='y',length=0)
     a.legend(handles=[Line2D([],[],color=col,lw=.8,ls=ls,marker=marker,
-                      ms=3.4,mew=.55,mfc='white',label=title)
+                      ms=3.3,mew=.67,mfc='white',label=title)
                       for _,title,col,marker,_,ls in styles],
              ncol=2,loc='lower left',bbox_to_anchor=(0,1.02),fontsize=9)
     grid(a,'x');save(f,out,'workflow-pairs',preview)

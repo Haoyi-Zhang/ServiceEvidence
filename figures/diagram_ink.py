@@ -2,6 +2,7 @@
 from math import cos, pi, sin
 from matplotlib.patches import Circle, Polygon, Rectangle, FancyArrowPatch
 from matplotlib.transforms import Bbox
+from matplotlib.textpath import TextPath
 from figure_style import Plate, BLUE, TEAL, AMBER, INK, MUTED, RULE, LIGHT, MINT, SAND
 
 S = BLUE
@@ -35,6 +36,7 @@ class Diagram(Plate):
         self.words=[]
         self.wires=[]
         self.boundaries=[]
+        self.ink_boxes={}
 
     def txt(self,x,y,label,sz=9.3,*,ha='center',color=K,bold=False):
         t=self.text(x,y,label,sz,ha=ha,color=color,weight='bold' if bold else 'normal')
@@ -43,6 +45,17 @@ class Diagram(Plate):
 
     def tag(self,x,y,label):
         return self.txt(x,y,label,9.8,ha='left',bold=True)
+
+    def node_label(self,x,y,label,sz=9.3,*,color=K):
+        """Center actual glyph ink, not the font's ascent/descent box."""
+        t=self.txt(x,y,label,sz,color=color)
+        ink=TextPath((0,0),label,prop=t.get_fontproperties(),size=sz).get_extents()
+        assert ink.width>0 and ink.height>0,(label,ink.extents)
+        px=x-(ink.x0+ink.x1)/2
+        py=y-(ink.y0+ink.y1)/2
+        t.set(ha='left',va='baseline',position=(px,py))
+        self.ink_boxes[t]=Bbox.from_extents(ink.x0+px,ink.y0+py,ink.x1+px,ink.y1+py)
+        return t
 
     def wire(self,*pts,c=G,dash=False,arrow=True,lw=.75):
         self.wires.extend(zip(pts,pts[1:]))
@@ -140,7 +153,7 @@ class Diagram(Plate):
         """Enlarge each label only if its own printed clearance permits it."""
         renderer=self.fig.canvas.get_renderer()
         inv=self.ax.transData.inverted()
-        extent=lambda text:text.get_window_extent(renderer).transformed(inv)
+        extent=lambda text:self.ink_boxes.get(text) if text in self.ink_boxes else text.get_window_extent(renderer).transformed(inv)
         limits=self.ax.get_xlim()[1],self.ax.get_ylim()[1]
         boxes={w:extent(w) for w in self.words}
         def sign(a,b):
@@ -148,6 +161,7 @@ class Diagram(Plate):
                 return 1
             return -1 if not a.overlaps(b) else 0
         for w in sorted(self.words,key=lambda t:t.get_fontsize()):
+            if w in self.ink_boxes: continue
             size=w.get_fontsize()
             label=w.get_text()
             base=boxes[w]
@@ -180,7 +194,7 @@ class Diagram(Plate):
         inv=self.ax.transData.inverted()
         groups=[]
         for w in self.words:
-            bb=w.get_window_extent(renderer).transformed(inv)
+            bb=self.ink_boxes[w] if w in self.ink_boxes else w.get_window_extent(renderer).transformed(inv)
             assert bb.x0>=-.05 and bb.y0>=-.05 and bb.x1<=self.ax.get_xlim()[1]+.05 and bb.y1<=self.ax.get_ylim()[1]+.05,(name,w.get_text(),bb.extents)
             for old,other in groups:
                 assert not bb.shrunk(.97,.92).overlaps(old.shrunk(.97,.92)),(name,w.get_text(),other)
