@@ -126,7 +126,7 @@ def compaction_gate():
         d.wire((20,y),(36,y),(36,25),c=S,arrow=False)
     d.dotmark(36,25,2,c=S,fill=S)
     d.wire((40,25),(94,25),c=S)
-    d.txt(54,47,'Matching ACKs',8.9,color=S)
+    d.txt(47,47,'Matching ACKs',8.9,color=S)
     d.mark('guard',105,25,16,T)
     d.node_label(106,43,r'$n_{>f}\leq p$',9.4,color=T)
     d.wire((116,25),(145,25),c=T)
