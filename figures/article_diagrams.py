@@ -3,73 +3,83 @@ import json
 from pathlib import Path
 from zipfile import ZipFile
 from diagram_ink import Diagram,S,T,A,K,G,F,L,P,O
+from matplotlib.patches import FancyBboxPatch
 
 
 def epoch_split():
     d=Diagram(252,97)
-    d.tag(8,87,'(a) Earlier seal')
-    d.tag(132,87,'(b) Later seal')
-    for group,xs in enumerate(((27,60,93),(153,186,219))):
-        d.wire((xs[0]+7,51),(xs[1]-7,51),c=T,arrow=False)
-        d.wire((xs[1]+7,51),(xs[2]-7,51),c=A if group else T,dash=bool(group),arrow=False)
-        if group:
-            d.mark('reject',202.5,51,13,A)
-            d.txt(202,68,'Negative cell',8.55,color=A)
-        for j,x in enumerate(xs):
-            d.dotmark(x,51,6,c=A if group and j==2 else T)
-            d.node_label(x,51,'abc'[j],9.1)
-        ends=((xs[0]-7,xs[-1]+7),) if group==0 else ((xs[0]-7,xs[1]+7),(xs[2]-7,xs[2]+7))
-        for a,b in ends:d.wire((a,37),(a,32),(b,32),(b,37),c=T,arrow=False)
-    d.txt(60,20,r'$\{a,b,c\}$',9.7,color=T)
-    d.txt(186,20,r'$\{a,b\},\,\{c\}$',9.7,color=T)
+    d.tag(13,85,'Evidence at seal')
+    d.tag(181,85,'View')
+    for y,ep,late in ((62,r'$e_0$',False),(30,r'$e_1$',True)):
+        d.txt(21,y,ep,9.8)
+        for x,n in zip((53,88,126),'abc'):
+            d.dotmark(x,y,6,c=T)
+            d.node_label(x,y,n,9.1)
+        d.wire((61,y),(80,y),c=T,arrow=False)
+        d.wire((96,y),(118,y),c=A if late else T,dash=late,arrow=False)
+        if late:
+            d.mark('reject',107,y,10,A)
+        d.wire((141,y),(169,y),c=G)
+        d.txt(208,y,r'$\{a,b\}\mid\{c\}$' if late else r'$\{a,b,c\}$',9.6,color=T)
+    d.mark('reject',69,9,9,A)
+    d.txt(81,9,'Negative cell',8.7,ha='left',color=A)
     return d
 
 
 def evidence_pipeline():
-    d=Diagram(242,139)
-    for x,label,k in [(31,'Local',1),(211,'Remote',2)]:
-        d.mark('replica',x,109,22,S)
-        d.txt(x,129,label,9.3,bold=True)
-        d.txt(x,90,rf'$(F_{k},C_{k})$',10.1,color=S)
-    d.wire((48,109),(86,109),(109,89),c=S)
-    d.wire((194,109),(156,109),(133,89),c=S)
-    d.dotmark(121,83,8,c=T)
-    d.node_label(121,83,r'$\sqcup$',10.8,color=T)
-    d.wire((121,73),(121,46),c=T)
-    d.node_label(60,66,r'$F^*(r)$',9.4,color=T)
-    d.node_label(60,51,r'$=\max(F_1(r),F_2(r))$',9.4,color=T)
-    d.node_label(183,66,r'$C^*$: filter $C_1\cup C_2$',9.2,color=T)
-    d.node_label(183,51,r'$e(c)\geq F^*(r(c))$',9.4,color=T)
-    d.mark('epoch',121,37,16,T)
-    d.txt(121,7,'Latest sealed epoch',8.8,color=T)
-    d.wire((110,37),(84,22),(62,22),c=T)
-    d.wire((132,37),(159,22),(181,22),c=T)
-    for x,kind,label in [(51,'graph','Partition'),(192,'cert','Certificate')]:
-        d.mark(kind,x,22,16,T)
-        d.txt(x,7,label,8.8,color=T)
+    d=Diagram(242,153)
+    d.tag(9,141,'Retained cells')
+    d.tag(129,141,'View at each read')
+    for y,k in ((69,1),(35,2)):
+        d.mark('replica',18,y,15,S)
+        d.txt(31,y,rf'$C_{k},F_{k}$',9.4,ha='left',color=S)
+        d.wire((57,y),(72,52),c=S,arrow=False)
+    d.dotmark(79,52,6,c=T,fill=P)
+    d.node_label(79,52,r'$\vee$',10,color=T)
+    d.wire((87,52),(102,52),c=T)
+    d.diamond(112,52,6,c=T)
+    d.wire((120,52),(128,52),c=T)
+    d.txt(55,15,r'$F^*=\max(F_1,F_2)$',8.6,color=G)
+    d.txt(111,76,'Seal gate',8.7,color=T)
+    d.wire((112,45),(112,24),(124,24),c=G,dash=True)
+    d.txt(125,16,r'Keep $e_0$ if incomplete',8.5,ha='left',color=G)
+    d.txt(47,119,'Earlier read',8.5,color=G)
+    d.mark('array',71,110,12,G)
+    d.wire((80,110),(128,110),c=G,dash=True)
+    for y,e,late in ((110,0,False),(52,1,True)):
+        d.ax.add_patch(FancyBboxPatch((130,y-10),101,20,
+                      boxstyle='round,pad=0,rounding_size=3',edgecolor=F,
+                      facecolor='none',lw=.72,zorder=3))
+        d.txt(178,y+16,rf'Latest seal $e_{e}$',8.6)
+        for x,n in zip((145,179,214),'abc'):
+            d.dotmark(x,y,6.6,c=T)
+            d.node_label(x,y,n,9.5)
+        d.wire((153,y),(171,y),c=T,arrow=False)
+        if late:
+            d.wire((187,y),(205,y),c=A,dash=True,arrow=False)
+            d.mark('reject',196,y,10,A)
+        else:
+            d.wire((187,y),(205,y),c=T,arrow=False)
+        d.txt(180,y-17,r'$\{a,b\}\mid\{c\}$' if late else r'$\{a,b,c\}$',9.8,color=T)
+    d.mark('reject',17,96,8,A)
+    d.txt(25,96,'Negative cell',8.4,ha='left',color=A)
     return d
 
 
 def negative_safe_view():
     d=Diagram(237,126)
-    d.tag(5,114,'(a) Candidate relations')
-    d.tag(124,114,'(b) First union retained')
-    for a,b,c in ((16,51,86),(135,170,205)):
-        d.wire((a,69),(a+9,90),(c-9,90),(c,69),c=A,dash=True,arrow=False)
-        d.txt(b,99,r'$(a,c)$ negative',8.8,color=A)
-        for x,label in zip((a,b,c),'abc'):
-            d.dotmark(x,61,6,c=S);d.node_label(x,61,label,9.4)
-        d.wire((a+7,61),(b-7,61),c=T,arrow=False,lw=1)
-    d.wire((58,61),(79,61),c=T,arrow=False,lw=1)
-    d.txt(51,44,'Candidate positives',8.6,color=T)
-    d.wire((93,61),(123,61),c=G)
-    d.wire((177,61),(182,61),c=G,arrow=False)
-    d.wire((193,61),(198,61),c=G,arrow=False)
-    d.mark('reject',187.5,61,10,A)
-    d.txt(190,45,r'$(b,c)$ blocked',8.6,color=A)
-    for lo,hi,label in ((125,180,r'$\{a,b\}$'),(196,214,r'$\{c\}$')):
-        d.wire((lo,35),(lo,30),(hi,30),(hi,35),c=T,arrow=False)
-        d.txt((lo+hi)/2,17,label,10.1,color=T)
+    d.tag(11,115,'Existing component and proposed union')
+    d.zone(11,44,96,29,c=T,fill='none',dash=False)
+    for x,n,c in ((29,'a',T),(88,'b',T),(207,'c',S)):
+        d.dotmark(x,59,7,c=c)
+        d.node_label(x,59,n,10)
+    d.wire((37,59),(80,59),c=T,arrow=False)
+    d.wire((96,59),(199,59),c=S,dash=True,arrow=False)
+    d.wire((30,67),(45,95),(186,95),(205,67),c=A,arrow=False)
+    d.txt(117,104,r'$(a,c)$ hard negative',9.1,color=A)
+    d.txt(146,48,r'$(b,c)$ proposed',9.0,color=S)
+    d.mark('reject',43,20,12,A)
+    d.txt(56,20,r'Keep $\{a,b\}$ and $\{c\}$ separate',9.2,ha='left',color=A)
     return d
 
 
@@ -83,61 +93,71 @@ def recovery_boundary():
     assert summary['actual_SIGKILL_cases']==54 and summary['passed']==59
     assert all(sum(r['cut']==c for r in summary['rows'])==6 for c in cut)
     d=Diagram(240,83)
-    d.mark('epoch',15,65,13,S);d.txt(29,65,'Recovered old / absent',9.1,ha='left',color=S)
-    d.mark('epoch',142,65,13,T);d.txt(156,65,'Recovered new',9.1,ha='left',color=T)
+    d.txt(62,68,'Old / absent',9.0,color=S)
+    d.txt(176,68,'New snapshot',9.0,color=T)
+    d.wire((12,53),(12,58),(117,58),(117,53),c=S,arrow=False)
+    d.wire((135,53),(135,58),(225,58),(225,53),c=T,arrow=False)
     for j in range(9):
-        x=18+j*25.2
-        if j:d.wire((x-19,37),(x-7,37),c=G if j==5 else (S if j<5 else T),arrow=False)
-        d.dotmark(x,37,6,c=S if j<5 else T)
-        d.node_label(x,37,str(j+1),8.3)
-    for midpoint,label in [(4.5,'Replace'),(6.5,'Dir. fsync')]:
-        boundary=18+midpoint*25.2
-        d.wire((boundary,23),(boundary,55),c=A,dash=True,arrow=False)
-        d.txt(boundary,11,label,9,color=A)
+        x=17+j*25.5
+        y=39
+        if j:
+            d.wire((x-19,y),(x-7,y),c=G,arrow=False,lw=.56)
+        if j<5:
+            d.dotmark(x,y,5.6,c=S)
+        else:
+            d.zone(x-5.5,y-5.5,11,11,c=T,dash=False)
+        d.node_label(x,y,str(j+1),8.1)
+    for mid,label in [(2.5,'File fsync'),(4.5,'Replace'),(6.5,'Dir. fsync')]:
+        x=17+mid*25.5
+        d.wire((x,32),(x,22),c=A,dash=True,arrow=False)
+        d.txt(x,12,label,8.8,color=A)
     return d
 
 
 def merge_only_boundary():
     d=Diagram(226,101)
-    d.txt(95,89,'Same view',9.1)
-    d.txt(176,89,'After negative cell',9.1)
-    for y,lab,kind,name,c in [(63,'X','array','Merge only',S),
-                             (27,'Y','keyed','Retained cells',T)]:
-        d.mark(kind,27,y,14,c)
-        d.txt(9,y,lab,9.2,color=c)
-        d.txt(39,y-13,name,8.5,color=c)
-        d.wire((88,y),(104,y),c=c,arrow=False)
-        for x,ch in [(81,'a'),(111,'b')]:
-            d.dotmark(x,y,5.5,c=c);d.node_label(x,y,ch,8.4)
-        d.wire((123,y),(153,y),c=c,dash=(lab=='X'))
-        if lab=='X':
-            d.mark('reject',164,y,14,A)
-            d.txt(177,y,'Cannot split',8.7,ha='left',color=A)
-        else:
-            for x,ch in [(164,'a'),(193,'b')]:
-                d.dotmark(x,y,5.5,c=T);d.node_label(x,y,ch,8.4)
+    d.txt(40,89,'Sealed epoch 0',9.2)
+    d.txt(166,89,'After a negative seal',9.2)
+    for x,n in ((25,'a'),(56,'b')):
+        d.dotmark(x,51,6,c=S)
+        d.node_label(x,51,n,9.1)
+    d.wire((33,51),(48,51),c=S,arrow=False)
+    d.wire((64,51),(84,51),c=G,arrow=False)
+    d.dotmark(84,51,1.9,c=G,fill=G)
+    d.wire((87,52),(112,66),(140,66),c=S)
+    d.txt(105,76,'Partition only',8.4,color=S)
+    d.wire((87,50),(112,29),(140,29),c=T)
+    d.txt(108,14,'Keep cells',8.6,color=T)
+    for x,n in ((153,'a'),(191,'b')):
+        for y,c in ((66,S),(29,T)):
+            d.dotmark(x,y,5.5,c=c)
+            d.node_label(x,y,n,8.8)
+    d.wire((160,66),(184,66),c=S,arrow=False)
+    d.mark('reject',172,29,10,A)
+    d.txt(171,52,'Still joined',8.5,color=S)
+    d.txt(171,13,'Split',8.5,color=T)
     return d
 
 
 def compaction_gate():
     d=Diagram(252,55)
-    for y in (12,25,38):
-        d.mark('replica',12,y,10,S)
-        d.wire((20,y),(36,y),(36,25),c=S,arrow=False)
-    d.dotmark(36,25,2,c=S,fill=S)
-    d.wire((40,25),(94,25),c=S)
-    d.txt(47,47,'Matching ACKs',8.9,color=S)
-    d.mark('guard',105,25,16,T)
-    d.node_label(106,43,r'$n_{>f}\leq p$',9.4,color=T)
-    d.wire((116,25),(145,25),c=T)
-    d.wire((105,15),(105,7),(63,7),c=A,dash=True)
-    d.txt(59,7,'Refuse',8.7,ha='right',color=A)
-    for x,s,c in [(160,r'$e<f$',G),(194,r'$e=f$',T),(229,r'$e>f$',T)]:
-        d.mark('epoch',x,25,14,c)
-        d.txt(x,42,s,9.2,color=c)
-    d.txt(160,8,'Drop',8.7,color=A)
-    d.wire((183,17),(183,13),(242,13),(242,17),c=T,arrow=False)
-    d.txt(212,5,'Retain',8.5,color=T)
+    d.mark('replica',11,29,13,S)
+    d.wire((20,29),(43,29),c=S)
+    d.txt(48,43,'ACKs match?',8.5,color=S)
+    d.diamond(50,29,5,T)
+    d.wire((57,29),(101,29),c=T)
+    d.txt(108,43,r'$n_{>f}\leq p$?',9.5,color=S)
+    d.diamond(108,29,5,T)
+    d.wire((115,29),(155,29),c=T)
+    d.txt(151,43,'All pass',8.0,color=T)
+    d.mark('store',165,29,13,T)
+    d.txt(206,35,r'Drop $e<f$',8.7,color=A)
+    d.txt(206,23,r'Keep $e\geq f$',8.7,color=T)
+    d.wire((50,23),(50,9),(105,9),c=A,dash=True,arrow=False)
+    d.wire((108,23),(108,9),c=A,dash=True,arrow=False)
+    d.dotmark(108,9,1.5,c=A,fill=A)
+    d.wire((111,9),(142,9),c=A,dash=True)
+    d.txt(149,9,'Refuse without mutation',8.0,ha='left',color=A)
     return d
 
 
